@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TED Tender Search Platform</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0052CC;
+            --primary-dark: #003D99;
+            --secondary: #00B8D4;
+            --accent: #FFB900;
+            --success: #00875A;
+            --warning: #FF8B00;
+            --danger: #DE350B;
+            --gray-50: #F7F8FA;
+            --gray-100: #EBECF0;
+            --gray-200: #DFE1E6;
+            --gray-300: #C1C7D0;
+            --gray-400: #97A0AF;
+            --gray-500: #6B778C;
+            --gray-600: #505F79;
+            --gray-700: #344563;
+            --gray-800: #253858;
+            --gray-900: #172B4D;
+            --white: #FFFFFF;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            color: var(--gray-900);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        #root {
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: white;
+            padding: 1.5rem 0;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .stats-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+
+        /* Filters */
+        .filters {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            font-size: 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            background: white;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--gray-200);
+            background: white;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .results-count {
+            font-size: 1.125rem;
+            color: var(--gray-700);
+            font-weight: 600;
+        }
+
+        .sort-dropdown {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            background: white;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* Tender Cards */
+        .tender-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .tender-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid var(--gray-100);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tender-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            transform: scaleY(0);
+            transition: transform 0.3s;
+        }
+
+        .tender-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .tender-card:hover::before {
+            transform: scaleY(1);
+        }
+
+        .tender-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tender-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            line-height: 1.3;
+            flex: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .tender-id {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .urgency-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .urgency-CRITICAL {
+            background: linear-gradient(135deg, #DE350B 0%, #BF2600 100%);
+            color: white;
+        }
+
+        .urgency-URGENT {
+            background: linear-gradient(135deg, #FF8B00 0%, #FF6B00 100%);
+            color: white;
+        }
+
+        .urgency-ACTIVE {
+            background: linear-gradient(135deg, #00875A 0%, #006644 100%);
+            color: white;
+        }
+
+        .urgency-LONG_TERM {
+            background: linear-gradient(135deg, #0052CC 0%, #003D99 100%);
+            color: white;
+        }
+
+        .deadline-days {
+            font-size: 1rem;
+            font-weight: 900;
+        }
+
+        .tender-description {
+            color: var(--gray-700);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tender-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: var(--gray-50);
+            border-radius: 12px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-value {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.9375rem;
+        }
+
+        .meta-value.email {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .meta-value.email:hover {
+            text-decoration: underline;
+        }
+
+        .tender-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tag {
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .tag-sme {
+            background: #E3FCEF;
+            color: var(--success);
+        }
+
+        .tag-framework {
+            background: #DEEBFF;
+            color: var(--primary);
+        }
+
+        .tag-innovation {
+            background: #FFF0B3;
+            color: #974F0C;
+        }
+
+        .tag-complex {
+            background: #FFEBE6;
+            color: var(--danger);
+        }
+
+        .tag-security {
+            background: #EAE6FF;
+            color: #5243AA;
+        }
+
+        .tag-value {
+            background: #E6FCFF;
+            color: #006380;
+            font-weight: 700;
+        }
+
+        .tender-footer {
+            display: flex;
+            gap: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .btn {
+            padding: 0.875rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-200);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Requirements Section */
+        .requirements-section {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #FFF4E6;
+            border-left: 4px solid var(--warning);
+            border-radius: 8px;
+        }
+
+        .requirement-title {
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .requirement-list {
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            margin-left: 1.5rem;
+        }
+
+        .requirement-list li {
+            margin: 0.25rem 0;
+        }
+
+        /* Loading & Empty States */
+        .loading {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-title {
+            font-family: 'Fraunces', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            color: var(--gray-500);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .tender-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .tender-footer {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tender-card {
+            animation: fadeInUp 0.5s ease-out backwards;
+        }
+
+        .tender-card:nth-child(1) { animation-delay: 0.05s; }
+        .tender-card:nth-child(2) { animation-delay: 0.1s; }
+        .tender-card:nth-child(3) { animation-delay: 0.15s; }
+        .tender-card:nth-child(4) { animation-delay: 0.2s; }
+        .tender-card:nth-child(5) { animation-delay: 0.25s; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        function App() {
+            const [tenders, setTenders] = useState([]);
+            const [metadata, setMetadata] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [urgencyFilter, setUrgencyFilter] = useState('all');
+            const [smeFilter, setSmeFilter] = useState(false);
+            const [sortBy, setSortBy] = useState('deadline');
+
+            useEffect(() => {
+                // Load JSON data from file
+                fetch('tenders_enhanced.json')
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('Loaded data:', data);
+                        setTenders(data.tenders || []);
+                        setMetadata(data.metadata || {
+                            total: data.tenders?.length || 0,
+                            stats: {
+                                urgency: {},
+                                sme: 0,
+                                with_barriers: 0
+                            }
+                        });
+                        setLoading(false);
+                    })
+                    .catch(err => {
+                        console.error('Error loading tenders:', err);
+                        setLoading(false);
+                    });
+            }, []);
+
+            const filteredTenders = useMemo(() => {
+                let filtered = tenders;
+
+                // Search filter
+                if (searchTerm) {
+                    const term = searchTerm.toLowerCase();
+                    filtered = filtered.filter(t =>
+                        t.title.toLowerCase().includes(term) ||
+                        t.description.toLowerCase().includes(term) ||
+                        t.buyer.name.toLowerCase().includes(term) ||
+                        t.classification.cpv_code?.includes(term)
+                    );
+                }
+
+                // Urgency filter
+                if (urgencyFilter !== 'all') {
+                    filtered = filtered.filter(t => 
+                        t.dates.urgency_level === urgencyFilter
+                    );
+                }
+
+                // SME filter
+                if (smeFilter) {
+                    filtered = filtered.filter(t => t.strategic.is_sme_accessible);
+                }
+
+                // Sort
+                filtered.sort((a, b) => {
+                    if (sortBy === 'deadline') {
+                        return (a.dates.days_until_deadline || 999) - (b.dates.days_until_deadline || 999);
+                    } else if (sortBy === 'value') {
+                        return (b.financial.value_eur || 0) - (a.financial.value_eur || 0);
+                    }
+                    return 0;
+                });
+
+                return filtered;
+            }, [tenders, searchTerm, urgencyFilter, smeFilter, sortBy]);
+
+            if (loading) {
+                return (
+                    <div className="loading">
+                        <div className="loading-spinner"></div>
+                        <p>Loading tenders...</p>
+                    </div>
+                );
+            }
+
+            if (!metadata) {
+                return (
+                    <div className="loading">
+                        <p>Error loading data. Please ensure tenders_enhanced.json is in the same directory.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    <Header metadata={metadata} />
+                    <StatsBar metadata={metadata} />
+                    <Filters
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        urgencyFilter={urgencyFilter}
+                        setUrgencyFilter={setUrgencyFilter}
+                        smeFilter={smeFilter}
+                        setSmeFilter={setSmeFilter}
+                    />
+                    <div className="main-content">
+                        <div className="results-header">
+                            <div className="results-count">
+                                {filteredTenders.length} tenders found
+                            </div>
+                            <select
+                                className="sort-dropdown"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                            >
+                                <option value="deadline">Sort by Deadline</option>
+                                <option value="value">Sort by Value</option>
+                            </select>
+                        </div>
+                        {filteredTenders.length > 0 ? (
+                            <div className="tender-grid">
+                                {filteredTenders.map(tender => (
+                                    <TenderCard key={tender.notice_identifier} tender={tender} />
+                                ))}
+                            </div>
+                        ) : (
+                            <EmptyState />
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function Header({ metadata }) {
+            return (
+                <div className="header">
+                    <div className="header-content">
+                        <h1>🇪🇺 TED Tender Platform</h1>
+                        <div className="header-subtitle">
+                            European Public Procurement Opportunities • {metadata.total} Active Tenders
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function StatsBar({ metadata }) {
+            const stats = metadata.stats;
+            return (
+                <div className="stats-bar">
+                    <div className="stats-container">
+                        <div className="stat-card">
+                            <span className="stat-value">{metadata.total}</span>
+                            <span className="stat-label">Total Tenders</span>
+                        </div>
+                        <div className="stat-card">
+                            <span className="stat-value" style={{color: '#DE350B'}}>
+                                {stats.urgency.CRITICAL || 0}
+                            </span>
+                            <span className="stat-label">Critical (≤3 days)</span>
+                        </div>
+                        <div className="stat-card">
+                            <span className="stat-value" style={{color: '#00875A'}}>
+                                {stats.sme}
+                            </span>
+                            <span className="stat-label">SME Accessible</span>
+                        </div>
+                        <div className="stat-card">
+                            <span className="stat-value" style={{color: '#FF8B00'}}>
+                                {stats.with_barriers}
+                            </span>
+                            <span className="stat-label">With Entry Barriers</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function Filters({ searchTerm, setSearchTerm, urgencyFilter, setUrgencyFilter, smeFilter, setSmeFilter }) {
+            return (
+                <div className="filters">
+                    <div className="search-box">
+                        <span className="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            className="search-input"
+                            placeholder="Search tenders by title, description, buyer, or CPV code..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="filter-group">
+                        <button
+                            className={`filter-btn ${urgencyFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setUrgencyFilter('all')}
+                        >
+                            All
+                        </button>
+                        <button
+                            className={`filter-btn ${urgencyFilter === 'CRITICAL' ? 'active' : ''}`}
+                            onClick={() => setUrgencyFilter('CRITICAL')}
+                        >
+                            🔥 Critical
+                        </button>
+                        <button
+                            className={`filter-btn ${urgencyFilter === 'URGENT' ? 'active' : ''}`}
+                            onClick={() => setUrgencyFilter('URGENT')}
+                        >
+                            ⚡ Urgent
+                        </button>
+                        <button
+                            className={`filter-btn ${urgencyFilter === 'ACTIVE' ? 'active' : ''}`}
+                            onClick={() => setUrgencyFilter('ACTIVE')}
+                        >
+                            ✅ Active
+                        </button>
+                        <button
+                            className={`filter-btn ${smeFilter ? 'active' : ''}`}
+                            onClick={() => setSmeFilter(!smeFilter)}
+                        >
+                            🏢 SME Only
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function TenderCard({ tender }) {
+            const urgencyClass = `urgency-${tender.dates.urgency_level}`;
+
+            return (
+                <div className="tender-card">
+                    <div className="tender-header">
+                        <div style={{flex: 1}}>
+                            <div className="tender-title">{tender.title}</div>
+                            <div className="tender-id">ID: {tender.publication_number}</div>
+                        </div>
+                        <div className={`urgency-badge ${urgencyClass}`}>
+                            <span className="deadline-days">{tender.dates.days_until_deadline}</span>
+                            days
+                        </div>
+                    </div>
+
+                    <div className="tender-description">{tender.description}</div>
+
+                    <div className="tender-meta">
+                        <div className="meta-item">
+                            <span className="meta-label">Buyer</span>
+                            <span className="meta-value">{tender.buyer.name}</span>
+                        </div>
+                        <div className="meta-item">
+                            <span className="meta-label">Location</span>
+                            <span className="meta-value">
+                                {tender.buyer.city ? `${tender.buyer.city}, ` : ''}{tender.buyer.country}
+                            </span>
+                        </div>
+                        <div className="meta-item">
+                            <span className="meta-label">Email</span>
+                            <a href={`mailto:${tender.buyer.email}`} className="meta-value email">
+                                {tender.buyer.email}
+                            </a>
+                        </div>
+                        <div className="meta-item">
+                            <span className="meta-label">Deadline</span>
+                            <span className="meta-value">
+                                {new Date(tender.dates.deadline_main).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                })}
+                            </span>
+                        </div>
+                        <div className="meta-item">
+                            <span className="meta-label">CPV Code</span>
+                            <span className="meta-value">{tender.classification.cpv_code}</span>
+                        </div>
+                        <div className="meta-item">
+                            <span className="meta-label">Procedure</span>
+                            <span className="meta-value">
+                                {tender.classification.procedure_type?.replace('-', ' ').toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="tender-tags">
+                        {tender.strategic.is_sme_accessible && (
+                            <span className="tag tag-sme">🏢 SME Accessible</span>
+                        )}
+                        {tender.strategic.is_framework && (
+                            <span className="tag tag-framework">📋 Framework</span>
+                        )}
+                        {tender.strategic.is_innovative && (
+                            <span className="tag tag-innovation">💡 Innovation</span>
+                        )}
+                        {tender.requirements.complexity_level === 'COMPLEX' && (
+                            <span className="tag tag-complex">⚠️ Complex</span>
+                        )}
+                        {tender.requirements.security_clearance === 'true' && (
+                            <span className="tag tag-security">🔒 Security Clearance</span>
+                        )}
+                        {tender.financial.value_eur ? (
+                            <span className="tag tag-value">
+                                €{tender.financial.value_eur.toLocaleString()} ({tender.financial.value_category})
+                            </span>
+                        ) : (
+                            <span className="tag" style={{background: '#F4F5F7', color: '#6B778C'}}>
+                                Value not disclosed
+                            </span>
+                        )}
+                    </div>
+
+                    {(tender.requirements.security_clearance === 'true' || 
+                      tender.requirements.guarantee_required === 'true') && (
+                        <div className="requirements-section">
+                            <div className="requirement-title">⚠️ Entry Requirements</div>
+                            <ul className="requirement-list">
+                                {tender.requirements.security_clearance === 'true' && (
+                                    <li>Security clearance required</li>
+                                )}
+                                {tender.requirements.guarantee_required === 'true' && (
+                                    <li>Financial guarantee required</li>
+                                )}
+                            </ul>
+                        </div>
+                    )}
+
+                    <div className="tender-footer">
+                        <a href={tender.urls?.ted_notice_url} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+                            📄 View Full Tender
+                        </a>
+                        {tender.urls?.document_url && (
+                            <a href={tender.urls.document_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+                                📎 Documents
+                            </a>
+                        )}
+                        {tender.urls?.submission_url && (
+                            <a href={tender.urls.submission_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+                                ✉️ Submit Bid
+                            </a>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function EmptyState() {
+            return (
+                <div className="empty-state">
+                    <div className="empty-icon">🔍</div>
+                    <div className="empty-title">No tenders found</div>
+                    <div className="empty-text">Try adjusting your filters or search term</div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
