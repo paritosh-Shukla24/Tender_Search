@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-TED API Tender Fetcher - Enhanced for Full UI Support
-Incrementally adds fields needed for complete UI functionality
-Version: 4.1 - Production Enhanced
+TED API Tender Fetcher - Production Grade with Multi-Lot Detection
+Version: 5.0 - Complete UI Support with Proper Multi-Lot Handling
 """
 
 import requests
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from collections import defaultdict
 import time
 
 # =============================================================================
@@ -18,112 +18,170 @@ import time
 TED_API_URL = "https://api.ted.europa.eu/v3/notices/search"
 REQUEST_TIMEOUT = 30
 
-# ENHANCED FIELD SET - Testing additional fields incrementally
-# Core 24 fields that definitely work + additional UI-critical fields
+# COMPREHENSIVE FIELD SET - Based on TED API Documentation
 TENDER_FIELDS = [
-    # === CORE 24 (PROVEN TO WORK) ===
-    "notice-identifier",
-    "publication-number",
-    "notice-type",
-    "notice-title",
-    "title-lot",
-    "description-lot",
-    "publication-date",
-    "deadline-receipt-tender-date-lot",
-    "deadline-receipt-request-date-lot",
-    "deadline-receipt-expressions-date-lot",
-    "classification-cpv",
-    "contract-nature",
-    "procedure-type",
-    "buyer-name",
-    "buyer-country",
-    "buyer-city",
-    "estimated-value-lot",
-    "estimated-value-cur-lot",
-    "place-of-performance-country-lot",
-    "place-of-performance-city-lot",
-    "identifier-lot",
-    "sme-lot",
-    "framework-agreement-lot",
-    "submission-url-lot",
+    # === CORE IDENTIFICATION (8 fields) ===
+    "notice-identifier",           # UUID - Primary key
+    "publication-number",          # TED reference (NNNNNN-YYYY)
+    "notice-type",                 # cn-standard, pin-only, can-standard
+    "form-type",                   # Form category
+    "procedure-identifier",        # Links related notices
+    "notice-title",                # Main title (multilingual)
+    "title-lot",                   # Lot-specific title
+    "description-lot",             # Lot description
     
-    # === ADDITIONAL UI-CRITICAL FIELDS (Testing) ===
-    # Contact & Details
-    "buyer-email",
-    "buyer-profile",
-    "buyer-legal-type",
+    # === DATES & DEADLINES (6 fields) ===
+    "publication-date",            # When published
+    "deadline-receipt-tender-date-lot",      # Tender submission deadline
+    "deadline-receipt-expressions-date-lot", # EOI deadline
+    "deadline-receipt-request-date-lot",     # Request to participate
+    "dispatch-date",               # Sent to TED
+    "deadline-date-lot",           # Generic deadline
     
-    # Strategic flags
-    "dps-usage-lot",
-    "innovative-acquisition-lot",
-    "social-objective-lot",
-    "reserved-procurement-lot",
+    # === CLASSIFICATION (4 fields) ===
+    "classification-cpv",          # CPV code (e.g., 72000000)
+    "main-classification-lot",     # Primary CPV indicator
+    "contract-nature",             # services/supplies/works
+    "procedure-type",              # open/restricted/negotiated
     
-    # Requirements (barriers to entry)
-    "security-clearance-lot",
-    "guarantee-required-lot",
-    "guarantee-required-description-lot",
-    "electronic-submission-lot",
+    # === BUYER INFORMATION (10 fields) ===
+    "organisation-name-buyer",     # Official buyer name
+    "buyer-name",                  # Simple buyer name
+    "buyer-country",               # Country code
+    "buyer-city",                  # City
+    "buyer-email",                 # Contact email
+    "buyer-profile",               # Buyer profile URL
+    "buyer-legal-type",            # Legal classification
+    "organisation-city-buyer",     # Org city
+    "organisation-street-buyer",   # Org street
+    "buyer-touchpoint-name",       # Contact person
     
-    # Award criteria
-    "award-criterion-type-lot",
-    "award-criterion-name-lot",
-    "award-criterion-description-lot",
+    # === FINANCIAL (3 fields) ===
+    "estimated-value-lot",         # Value as number
+    "estimated-value-cur-lot",     # Value with currency {amount, currency}
+    "tender-value-cur",            # Actual awarded value
     
-    # URLs & Documents
-    "document-url-lot",
+    # === LOCATION (4 fields) ===
+    "place-of-performance-country-lot",  # Where work happens
+    "place-of-performance-city-lot",     # City location
+    "place-of-performance-subdiv-lot",   # NUTS code
+    "place-of-performance",              # Description
     
-    # Contract details
-    "contract-duration-period-lot",
-    "contract-duration-start-date-lot",
-    "contract-duration-end-date-lot",
+    # === LOT STRUCTURE (4 fields) ===
+    "identifier-lot",              # LOT-0001, LOT-0002, etc.
+    "internal-identifier-lot",     # Internal reference
+    "title-lot",                   # Lot title
+    "description-lot",             # Lot description
     
-    # Additional classification
-    "additional-classification-lot",
-    "main-classification-lot",
+    # === STRATEGIC FLAGS (6 fields) ===
+    "sme-lot",                     # SME suitable
+    "framework-agreement-lot",     # Framework
+    "dps-usage-lot",              # Dynamic Purchasing System
+    "reserved-procurement-lot",    # Reserved tender
+    "innovative-acquisition-lot",  # Innovation
+    "social-objective-lot",       # Social goals
     
-    # Procedure details
-    "variant-allowed-lot",
-    "electronic-auction-lot",
-    "recurrence-lot",
+    # === URLs & DOCUMENTS (3 fields) ===
+    "document-url-lot",            # Tender documents
+    "submission-url-lot",          # Bid submission portal
+    "buyer-profile",               # Buyer information
     
-    # Two-stage procedures
-    "minimum-candidate-lot",
-    "maximum-candidates-lot",
+    # === AWARD CRITERIA (4 fields) ===
+    "award-criterion-type-lot",    # QUALITY/COST/PRICE
+    "award-criterion-name-lot",    # Criterion name
+    "award-criterion-description-lot",  # Details
+    "award-criterion-number-weight-lot", # Weighting
     
-    # Framework details
-    "framework-maximum-participants-number-lot",
+    # === REQUIREMENTS & BARRIERS (12 fields) ===
+    "security-clearance-lot",      # Security clearance required
+    "guarantee-required-lot",      # Financial guarantee needed
+    "guarantee-required-description-lot",  # Guarantee details
+    "subcontracting-obligation-lot",  # Must subcontract
+    "subcontracting-allowed-lot",  # Subcontracting allowed
+    "electronic-submission-lot",   # E-submission required
+    "submission-language",         # Accepted languages
+    "electronic-auction-lot",      # E-auction
+    "electronic-invoicing-lot",    # E-invoicing required
+    "variant-allowed-lot",         # Variants allowed
+    "multiple-tender-lot",         # Multiple bids allowed
+    "accessibility-lot",           # Accessibility requirements
     
-    # Additional info
-    "gpa-lot",
-    "additional-information-lot",
+    # === FRAMEWORK & DPS DETAILS (6 fields) ===
+    "framework-duration-justification-lot",  # Why this duration
+    "framework-maximum-participants-number-lot",  # Max participants
+    "framework-estimated-value",   # Total framework value
+    "dps-termination-lot",        # DPS can be terminated
+    "following-contract-lot",     # Follow-on contracts
+    "recurrence-lot",             # Will this repeat
+    
+    # === PROCEDURE DETAILS (8 fields) ===
+    "procedure-accelerated",       # Accelerated procedure
+    "minimum-candidate-lot",       # Min candidates for shortlist
+    "maximum-candidates-lot",      # Max candidates
+    "lots-max-allowed-proc",      # Max lots per bidder
+    "lots-max-awarded-proc",      # Max lots can win
+    "lots-all-required-proc",     # Must bid all lots
+    "procedure-justification",    # Why this procedure
+    "gpa-lot",                    # GPA covered
+    
+    # === CONTRACT DURATION (6 fields) ===
+    "contract-duration-period-lot",      # Duration in months/days
+    "contract-duration-start-date-lot",  # Start date
+    "contract-duration-end-date-lot",    # End date
+    "renewal-maximum-lot",         # Max renewals
+    "renewal-description-lot",     # Renewal terms
+    "term-performance-lot",       # Performance terms
+    
+    # === ADDITIONAL CLASSIFICATION ===
+    "additional-classification-lot",  # Extra CPV codes
+    
+    # === ADDITIONAL INFO ===
+    "additional-information-lot",  # Extra information
+    
+    # === GROUP OF LOTS (for multi-lot detection) ===
+    "identifier-glo",             # Group Lot ID
+    "lots-max-allowed-proc",      # Max lots per bidder
 ]
 
-CURRENCY_RATES = {"EUR": 1.0, "DKK": 0.134, "NOK": 0.084, "SEK": 0.089, "USD": 0.95, "GBP": 1.17}
+CURRENCY_RATES = {
+    "EUR": 1.0,
+    "DKK": 0.134,
+    "NOK": 0.084,
+    "SEK": 0.089,
+    "USD": 0.95,
+    "GBP": 1.17,
+    "PLN": 0.23,
+    "CZK": 0.040,
+    "HUF": 0.0025,
+}
 
 # =============================================================================
 # UTILITY FUNCTIONS
 # =============================================================================
 
 def get_value(data: Any, default: Any = None) -> Any:
-    """Extract value from TED API data."""
+    """Extract value from TED API multilingual data structure."""
     if data is None:
         return default
     
+    # Handle multilingual dictionary
     if isinstance(data, dict):
-        for lang in ['eng', 'dan', 'deu', 'swe', 'nor', 'fra']:
+        # Priority language order
+        for lang in ['eng', 'dan', 'deu', 'swe', 'nor', 'fra', 'spa', 'ita']:
             if lang in data:
                 value = data[lang]
                 if isinstance(value, list) and value:
                     return value[0]
                 return value if value else default
         
+        # Fallback to first available value
         if data:
             first_value = next(iter(data.values()), default)
             if isinstance(first_value, list) and first_value:
                 return first_value[0]
             return first_value if first_value else default
     
+    # Handle list
     if isinstance(data, list) and data:
         return data[0]
     
@@ -138,7 +196,7 @@ def parse_date(date_str: Any) -> Optional[str]:
             if isinstance(date_str, str):
                 dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
                 return dt.isoformat()
-        except:
+        except Exception as e:
             pass
     return None
 
@@ -155,12 +213,24 @@ def calculate_days_until(deadline_iso: Optional[str]) -> Optional[int]:
     return None
 
 
+def parse_boolean(value: Any) -> bool:
+    """Parse boolean value from TED API."""
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        value = value.lower()
+        return value not in ['false', 'none', '', 'no', 'not-allowed']
+    return bool(value)
+
+
 # =============================================================================
 # TED API
 # =============================================================================
 
 def fetch_tenders_page(query: str, page: int = 1) -> Dict[str, Any]:
-    """Fetch one page."""
+    """Fetch one page from TED API."""
     payload = {
         "query": query,
         "fields": TENDER_FIELDS,
@@ -181,31 +251,23 @@ def fetch_tenders_page(query: str, page: int = 1) -> Dict[str, Any]:
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ API Error: {e}")
         if hasattr(e, 'response') and e.response:
             error_text = e.response.text[:1000]
             print(f"   Response: {error_text}")
-            
-            # Try to identify problematic field
-            if "unsupported value" in error_text.lower():
-                print("\n⚠️  Some fields are not supported")
-                print("   Falling back to minimal field set...")
-                return {"fallback_needed": True}
         return {}
 
 
 def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
     """Fetch ALL tenders with proper pagination."""
-    print(f"\n🔍 Fetching tenders...")
+    print(f"\n🔍 Fetching tenders from TED API...")
     print(f"   Countries: {', '.join(countries)}")
-    print(f"   Last {days} days")
-    print(f"   Fields: {len(TENDER_FIELDS)} (24 core + {len(TENDER_FIELDS)-24} enhanced)")
+    print(f"   Published in last {days} days")
+    print(f"   Fields requested: {len(TENDER_FIELDS)}")
     print("-" * 80)
     
-    # Build query - Try WITHOUT deadline filter first
+    # Build query
     countries_str = ", ".join([f'"{c}"' for c in countries])
-    
-    # Query WITHOUT deadline filter (more results)
     query = (
         f"notice-type IN (cn-standard, cn-social, pin-cfc-standard, pin-cfc-social) "
         f"AND buyer-country IN ({countries_str}) "
@@ -213,26 +275,20 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
     )
     
     print(f"   Query: {query}")
-    print(f"   Note: Using publication date filter only (no deadline filter)")
-    print(f"   Reason: More inclusive - will filter expired tenders after fetching")
     print("-" * 80)
     
     all_notices = []
     page = 1
     total = None
-    max_pages = 50  # Safety limit (50 pages × 100 = 5000 max)
+    max_pages = 50
     
     while page <= max_pages:
         print(f"📄 Page {page}...", end=" ", flush=True)
         
         result = fetch_tenders_page(query, page)
         
-        if result.get("fallback_needed"):
-            print("⚠️  Enhanced fields not supported")
-            return []
-        
         if not result:
-            print("❌")
+            print("❌ Failed")
             break
         
         notices = result.get("notices", [])
@@ -240,44 +296,21 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
         
         if page == 1:
             total = hits
-            print(f"✅ Total available: {total}")
-            
-            # Debug: Show what we got
-            if total == 0:
-                print(f"\n⚠️  API returned 0 hits")
-                print(f"   Full response: {json.dumps(result, indent=2)[:500]}...")
-                
-                # This might be a field issue, not a query issue
-                # Let's continue to see if notices exist despite hits=0
-                if not notices:
-                    print(f"   No notices in response - query returned nothing")
-                    return []
-                else:
-                    print(f"   But got {len(notices)} notices - continuing...")
+            print(f"✅ Total: {total} tenders")
         else:
             print(f"✅ Got {len(notices)}")
         
         if not notices:
-            # No more results
             break
         
         all_notices.extend(notices)
         
-        # Check if we got everything
-        if len(all_notices) >= total:
-            print(f"\n✅ Complete: Fetched all {len(all_notices)} tenders")
-            break
-        
-        # Check if API returned less than limit (means no more pages)
-        if len(notices) < 100:
-            print(f"\n✅ Complete: Got all available tenders ({len(all_notices)} total)")
+        if len(all_notices) >= total or len(notices) < 100:
+            print(f"\n✅ Complete: Fetched {len(all_notices)} tender lots")
             break
         
         page += 1
         time.sleep(0.5)  # Rate limiting
-    
-    if page >= max_pages:
-        print(f"\n⚠️  Reached page limit. Fetched {len(all_notices)} of {total} total")
     
     return all_notices
 
@@ -286,16 +319,17 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
 # PARSING
 # =============================================================================
 
-def parse_tender(notice: Dict) -> Dict:
-    """Parse tender with enhanced fields."""
+def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1) -> Dict:
+    """Parse tender with comprehensive field handling."""
     
-    # Core
+    # === CORE IDENTIFICATION ===
     notice_id = notice.get("notice-identifier")
     pub_number = get_value(notice.get("publication-number"))
+    notice_type = get_value(notice.get("notice-type"))
     title = get_value(notice.get("notice-title")) or get_value(notice.get("title-lot")) or "No title"
     description = get_value(notice.get("description-lot")) or ""
     
-    # Dates
+    # === DATES ===
     pub_date = parse_date(notice.get("publication-date"))
     deadline_tender = parse_date(notice.get("deadline-receipt-tender-date-lot"))
     deadline_request = parse_date(notice.get("deadline-receipt-request-date-lot"))
@@ -304,34 +338,37 @@ def parse_tender(notice: Dict) -> Dict:
     main_deadline = deadline_tender or deadline_request or deadline_eoi
     days_until = calculate_days_until(main_deadline)
     
+    # Urgency calculation
     if days_until is not None:
         if days_until < 0:
             urgency = "EXPIRED"
-        elif days_until <= 3:
-            urgency = "CRITICAL"
         elif days_until <= 7:
-            urgency = "URGENT"
+            urgency = "CRITICAL"
         elif days_until <= 14:
             urgency = "MODERATE"
         else:
             urgency = "NORMAL"
     else:
-        urgency = None
+        urgency = "UNKNOWN"
     
-    # Buyer
-    buyer_name = get_value(notice.get("buyer-name")) or "Unknown"
+    # === BUYER ===
+    buyer_name = (get_value(notice.get("organisation-name-buyer")) or 
+                  get_value(notice.get("buyer-name")) or 
+                  "Unknown Buyer")
     buyer_country = get_value(notice.get("buyer-country"))
-    buyer_city = get_value(notice.get("buyer-city"))
+    buyer_city = get_value(notice.get("buyer-city")) or get_value(notice.get("organisation-city-buyer"))
     buyer_email = get_value(notice.get("buyer-email"))
     buyer_profile = get_value(notice.get("buyer-profile"))
+    buyer_legal = get_value(notice.get("buyer-legal-type"))
     
     # Regional cluster
     clusters = {
         'NORDIC': ['DNK', 'SWE', 'NOR', 'FIN', 'ISL'],
         'BALTIC': ['EST', 'LVA', 'LTU'],
-        'WESTERN': ['DEU', 'FRA', 'AUT'],
-        'SOUTHERN': ['ITA', 'ESP', 'PRT'],
-        'EASTERN': ['POL', 'CZE', 'HUN'],
+        'WESTERN': ['DEU', 'FRA', 'AUT', 'BEL', 'NLD', 'LUX'],
+        'SOUTHERN': ['ITA', 'ESP', 'PRT', 'GRC', 'MLT', 'CYP'],
+        'EASTERN': ['POL', 'CZE', 'HUN', 'SVK', 'SVN', 'ROU', 'BGR'],
+        'BRITISH': ['GBR', 'IRL'],
     }
     
     cluster = None
@@ -341,72 +378,52 @@ def parse_tender(notice: Dict) -> Dict:
                 cluster = name
                 break
     
-    # Financial
+    # === FINANCIAL ===
     value_eur = None
     value_original = None
     currency = None
-    category = None
     
-    # Debug: Check what we're getting
+    # Try estimated-value-cur-lot first
     value_cur_data = notice.get("estimated-value-cur-lot")
-    value_lot_data = notice.get("estimated-value-lot")
-    
-    # Try estimated-value-cur-lot first (has currency info)
     if value_cur_data:
         try:
-            # Handle list
             if isinstance(value_cur_data, list) and value_cur_data:
                 value_cur_data = value_cur_data[0]
             
-            # Handle dict with amount and currency
             if isinstance(value_cur_data, dict):
                 amount = value_cur_data.get("amount")
                 currency = value_cur_data.get("currency", "EUR")
-                
                 if amount:
                     value_original = float(amount)
                     rate = CURRENCY_RATES.get(currency.upper(), 1.0)
                     value_eur = value_original * rate
-            # Handle direct number
-            elif isinstance(value_cur_data, (int, float)):
-                value_original = float(value_cur_data)
-                value_eur = value_original
-                currency = "EUR"
-        except Exception as e:
-            # Debug print
-            print(f"   ⚠️ Error parsing estimated-value-cur-lot: {e}")
+        except:
             pass
     
     # Fallback to estimated-value-lot
-    if value_eur is None and value_lot_data:
-        try:
-            # Handle list
-            if isinstance(value_lot_data, list) and value_lot_data:
-                value_lot_data = value_lot_data[0]
-            
-            # Handle dict
-            if isinstance(value_lot_data, dict):
-                amount = value_lot_data.get("amount") or value_lot_data.get("value")
-                currency = value_lot_data.get("currency", "EUR")
-                if amount:
-                    value_original = float(amount)
-                    rate = CURRENCY_RATES.get(currency.upper(), 1.0)
-                    value_eur = value_original * rate
-            # Handle direct number
-            elif isinstance(value_lot_data, (int, float)):
-                value_eur = float(value_lot_data)
-                value_original = value_eur
-                currency = "EUR"
-            # Handle string number
-            elif isinstance(value_lot_data, str):
-                value_eur = float(value_lot_data.replace(',', ''))
-                value_original = value_eur
-                currency = "EUR"
-        except Exception as e:
-            # Debug print
-            print(f"   ⚠️ Error parsing estimated-value-lot: {e}")
-            pass
+    if value_eur is None:
+        value_lot_data = notice.get("estimated-value-lot")
+        if value_lot_data:
+            try:
+                if isinstance(value_lot_data, list) and value_lot_data:
+                    value_lot_data = value_lot_data[0]
+                
+                if isinstance(value_lot_data, dict):
+                    amount = value_lot_data.get("amount") or value_lot_data.get("value")
+                    currency = value_lot_data.get("currency", "EUR")
+                    if amount:
+                        value_original = float(amount)
+                        rate = CURRENCY_RATES.get(currency.upper(), 1.0)
+                        value_eur = value_original * rate
+                elif isinstance(value_lot_data, (int, float)):
+                    value_eur = float(value_lot_data)
+                    value_original = value_eur
+                    currency = "EUR"
+            except:
+                pass
     
+    # Value category
+    category = None
     if value_eur:
         if value_eur < 50000:
             category = "MICRO"
@@ -419,7 +436,7 @@ def parse_tender(notice: Dict) -> Dict:
         else:
             category = "MEGA"
     
-    # Classification
+    # === CLASSIFICATION ===
     cpv_data = notice.get("classification-cpv", [])
     if not isinstance(cpv_data, list):
         cpv_data = [cpv_data] if cpv_data else []
@@ -435,77 +452,89 @@ def parse_tender(notice: Dict) -> Dict:
     
     cpv_codes_additional = list(set([cpv for cpv in cpv_codes_additional if cpv]))
     
-    # Location
+    contract_nature = get_value(notice.get("contract-nature"))
+    procedure_type = get_value(notice.get("procedure-type"))
+    
+    # === LOCATION ===
     perf_country = get_value(notice.get("place-of-performance-country-lot"))
     perf_city = get_value(notice.get("place-of-performance-city-lot"))
+    perf_desc = get_value(notice.get("place-of-performance"))
     
-    # Flags - handle "none" string values
-    is_sme_raw = get_value(notice.get("sme-lot"), False)
-    is_sme = is_sme_raw if isinstance(is_sme_raw, bool) else (is_sme_raw not in ["none", None, ""])
-    
-    is_framework_raw = get_value(notice.get("framework-agreement-lot"), False)
-    is_framework = is_framework_raw if isinstance(is_framework_raw, bool) else (is_framework_raw not in ["none", None, ""])
-    
-    is_dps_raw = get_value(notice.get("dps-usage-lot"), False)
-    is_dps = is_dps_raw if isinstance(is_dps_raw, bool) else (is_dps_raw not in ["none", None, ""])
-    
-    is_innovative_raw = get_value(notice.get("innovative-acquisition-lot"), False)
-    is_innovative = is_innovative_raw if isinstance(is_innovative_raw, bool) else (is_innovative_raw not in ["none", None, ""])
-    
-    is_social_raw = get_value(notice.get("social-objective-lot"), False)
-    is_social = is_social_raw if isinstance(is_social_raw, bool) else (is_social_raw not in ["none", None, ""])
-    
-    # Lot info
+    # === LOT STRUCTURE ===
     lot_id = get_value(notice.get("identifier-lot"))
+    is_multi_lot = total_lots > 1
     
-    # Multi-lot detection - Check if multiple lots exist in the tender
-    # Note: We can't reliably detect multi-lot from a single lot's data
-    # The API returns one record per lot, so a tender with 3 lots = 3 records
-    # For now, we'll mark as unknown unless we group by notice-identifier
-    is_multi_lot = False  # Will be calculated later if needed
+    # === STRATEGIC FLAGS ===
+    is_sme = parse_boolean(get_value(notice.get("sme-lot")))
+    is_framework = parse_boolean(get_value(notice.get("framework-agreement-lot")))
+    is_dps = parse_boolean(get_value(notice.get("dps-usage-lot")))
+    is_innovative = parse_boolean(get_value(notice.get("innovative-acquisition-lot")))
+    is_social = parse_boolean(get_value(notice.get("social-objective-lot")))
+    is_reserved = parse_boolean(get_value(notice.get("reserved-procurement-lot")))
     
-    # Requirements
-    security_clearance = get_value(notice.get("security-clearance-lot"), False)
-    guarantee_required = get_value(notice.get("guarantee-required-lot"), False)
-    electronic_submission = get_value(notice.get("electronic-submission-lot"), False)
+    # === REQUIREMENTS ===
+    security_clearance = parse_boolean(get_value(notice.get("security-clearance-lot")))
+    guarantee_required = parse_boolean(get_value(notice.get("guarantee-required-lot")))
+    guarantee_desc = get_value(notice.get("guarantee-required-description-lot"))
+    electronic_submission = get_value(notice.get("electronic-submission-lot"))
+    subcontracting_allowed = parse_boolean(get_value(notice.get("subcontracting-allowed-lot")))
+    subcontracting_obligatory = parse_boolean(get_value(notice.get("subcontracting-obligation-lot")))
     
-    # Calculate complexity score
+    # Complexity calculation
     complexity = 0
     if security_clearance:
         complexity += 20
     if guarantee_required:
         complexity += 10
-    if get_value(notice.get("procedure-type")) in ["restricted", "comp-dial"]:
+    if procedure_type in ["restricted", "comp-dial", "negotiated"]:
         complexity += 20
+    if subcontracting_obligatory:
+        complexity += 15
     
     complexity_level = "COMPLEX" if complexity >= 30 else "MODERATE" if complexity >= 15 else "SIMPLE"
     
-    # URLs
+    # === URLS ===
     submission_url = get_value(notice.get("submission-url-lot"))
     document_url = get_value(notice.get("document-url-lot"))
     ted_url = f"https://ted.europa.eu/en/notice/-/detail/{pub_number}" if pub_number else None
+    ted_pdf = f"https://ted.europa.eu/en/notice/{pub_number}/pdf" if pub_number else None
     
-    # Award criteria
+    # === AWARD CRITERIA ===
     award_type = get_value(notice.get("award-criterion-type-lot"))
     award_name = get_value(notice.get("award-criterion-name-lot"))
+    award_desc = get_value(notice.get("award-criterion-description-lot"))
     
-    # Contract duration - handle nested structure
+    # === CONTRACT DURATION ===
     duration_raw = notice.get("contract-duration-period-lot")
     duration = None
     if duration_raw:
         try:
             if isinstance(duration_raw, dict):
-                # Structure like {"unit": "YEAR", "value": "10"}
                 duration = duration_raw
             elif isinstance(duration_raw, list) and duration_raw:
                 duration = duration_raw[0] if isinstance(duration_raw[0], dict) else None
         except:
             pass
     
+    start_date = parse_date(notice.get("contract-duration-start-date-lot"))
+    end_date = parse_date(notice.get("contract-duration-end-date-lot"))
+    
+    # === PROCEDURE DETAILS ===
+    is_accelerated = parse_boolean(get_value(notice.get("procedure-accelerated")))
+    variant_allowed = get_value(notice.get("variant-allowed-lot"))
+    electronic_auction = parse_boolean(get_value(notice.get("electronic-auction-lot")))
+    is_recurrent = parse_boolean(get_value(notice.get("recurrence-lot")))
+    min_candidates = get_value(notice.get("minimum-candidate-lot"))
+    max_candidates = get_value(notice.get("maximum-candidates-lot"))
+    
+    # === ADDITIONAL ===
+    gpa_covered = parse_boolean(get_value(notice.get("gpa-lot")))
+    additional_info = get_value(notice.get("additional-information-lot"))
+    
     return {
         "notice_identifier": notice_id,
         "publication_number": pub_number,
-        "notice_type": get_value(notice.get("notice-type")),
+        "notice_type": notice_type,
         "title": str(title),
         "description": str(description),
         
@@ -527,7 +556,7 @@ def parse_tender(notice: Dict) -> Dict:
             "city": buyer_city,
             "email": buyer_email,
             "profile_url": buyer_profile,
-            "legal_type": get_value(notice.get("buyer-legal-type")),
+            "legal_type": buyer_legal,
         },
         
         "financial": {
@@ -540,33 +569,39 @@ def parse_tender(notice: Dict) -> Dict:
         "classification": {
             "cpv_code": cpv_code,
             "cpv_codes_additional": cpv_codes_additional,
-            "contract_nature": get_value(notice.get("contract-nature")),
-            "procedure_type": get_value(notice.get("procedure-type")),
+            "contract_nature": contract_nature,
+            "procedure_type": procedure_type,
         },
         
         "location": {
             "performance_country": perf_country,
             "performance_city": perf_city,
+            "performance_description": perf_desc,
             "is_cross_border": buyer_country and perf_country and buyer_country != perf_country,
             "regional_cluster": cluster,
         },
         
         "strategic": {
             "is_sme": is_sme,
-            "is_sme_accessible": is_sme or (value_eur and value_eur < 500000),
+            "is_sme_accessible": is_sme or (value_eur and value_eur < 500000) or is_multi_lot,
             "is_framework": is_framework,
             "is_dps": is_dps,
             "is_innovative": is_innovative,
             "is_social": is_social,
+            "is_reserved": is_reserved,
             "is_multi_lot": is_multi_lot,
             "lot_identifier": lot_id,
+            "lot_number": lot_number,
+            "total_lots": total_lots,
         },
         
         "requirements": {
             "security_clearance": security_clearance,
             "guarantee_required": guarantee_required,
-            "guarantee_description": get_value(notice.get("guarantee-required-description-lot")),
+            "guarantee_description": guarantee_desc,
             "electronic_submission": electronic_submission,
+            "subcontracting_allowed": subcontracting_allowed,
+            "subcontracting_obligatory": subcontracting_obligatory,
             "complexity_score": complexity,
             "complexity_level": complexity_level,
         },
@@ -574,33 +609,36 @@ def parse_tender(notice: Dict) -> Dict:
         "award_criteria": {
             "type": award_type,
             "name": award_name,
-            "description": get_value(notice.get("award-criterion-description-lot")),
+            "description": award_desc,
         },
         
         "contract": {
             "duration": duration,
-            "start_date": parse_date(notice.get("contract-duration-start-date-lot")),
-            "end_date": parse_date(notice.get("contract-duration-end-date-lot")),
+            "start_date": start_date,
+            "end_date": end_date,
+            "renewal_max": get_value(notice.get("renewal-maximum-lot")),
+            "renewal_description": get_value(notice.get("renewal-description-lot")),
         },
         
         "procedure": {
-            "variant_allowed": get_value(notice.get("variant-allowed-lot"), False),
-            "electronic_auction": get_value(notice.get("electronic-auction-lot"), False),
-            "is_recurrent": get_value(notice.get("recurrence-lot"), False),
-            "minimum_candidates": get_value(notice.get("minimum-candidate-lot")),
-            "maximum_candidates": get_value(notice.get("maximum-candidates-lot")),
+            "is_accelerated": is_accelerated,
+            "variant_allowed": variant_allowed,
+            "electronic_auction": electronic_auction,
+            "is_recurrent": is_recurrent,
+            "minimum_candidates": min_candidates,
+            "maximum_candidates": max_candidates,
         },
         
         "urls": {
             "submission_url": submission_url,
             "document_url": document_url,
             "ted_notice_url": ted_url,
-            "ted_pdf_url": f"https://ted.europa.eu/en/notice/{pub_number}/pdf" if pub_number else None,
+            "ted_pdf_url": ted_pdf,
         },
         
         "additional": {
-            "gpa_covered": get_value(notice.get("gpa-lot"), False),
-            "additional_info": get_value(notice.get("additional-information-lot")),
+            "gpa_covered": gpa_covered,
+            "additional_info": additional_info,
         },
         
         "metadata": {
@@ -612,122 +650,149 @@ def parse_tender(notice: Dict) -> Dict:
 
 
 # =============================================================================
+# MULTI-LOT DETECTION & PROCESSING
+# =============================================================================
+
+def detect_and_process_multilot(notices: List[Dict]) -> List[Dict]:
+    """
+    Detect multi-lot tenders and properly process them.
+    
+    Multi-lot detection logic:
+    - Group notices by notice_identifier
+    - If multiple lots exist, mark as multi-lot
+    - Keep only the first lot for main display
+    - Store lot count information
+    """
+    print(f"\n🔄 Processing multi-lot tenders...")
+    
+    # Group by notice identifier
+    notice_groups = defaultdict(list)
+    for notice in notices:
+        notice_id = notice.get("notice-identifier")
+        if notice_id:
+            notice_groups[notice_id].append(notice)
+    
+    print(f"   Found {len(notice_groups)} unique tenders")
+    
+    # Detect multi-lot
+    multi_lot_tenders = {
+        nid: lots for nid, lots in notice_groups.items() if len(lots) > 1
+    }
+    
+    print(f"   Multi-lot tenders: {len(multi_lot_tenders)}")
+    
+    # Parse tenders
+    parsed_tenders = []
+    
+    for notice_id, lots in notice_groups.items():
+        total_lots = len(lots)
+        is_multi = total_lots > 1
+        
+        # Parse first lot (or only lot)
+        first_lot = lots[0]
+        tender = parse_tender(first_lot, lot_number=1, total_lots=total_lots)
+        
+        # Add multi-lot metadata
+        if is_multi:
+            tender["strategic"]["lot_titles"] = [
+                get_value(lot.get("title-lot")) or f"Lot {i+1}"
+                for i, lot in enumerate(lots)
+            ]
+        
+        parsed_tenders.append(tender)
+    
+    print(f"   Parsed {len(parsed_tenders)} unique tenders")
+    
+    return parsed_tenders
+
+
+# =============================================================================
 # MAIN
 # =============================================================================
 
 def main():
     print("\n" + "="*80)
-    print("🇪🇺 TED API TENDER FETCHER - ENHANCED")
+    print("🇪🇺 TED API TENDER FETCHER - PRODUCTION GRADE")
     print("="*80)
-    print("\nVersion 4.1 - Full UI Support")
-    print(f"Testing {len(TENDER_FIELDS)} fields for complete UI functionality")
+    print("\nVersion 5.0 - Complete with Multi-Lot Detection")
+    print(f"Fields: {len(TENDER_FIELDS)} comprehensive fields")
     
-    # Config
-    COUNTRIES = ["DNK"]
+    # Configuration
+    COUNTRIES = ["DNK"]  # Denmark
     DAYS = 15
     OUTPUT = "tenders_enhanced.json"
     
-    # Fetch
+    # Fetch raw notices
     notices = fetch_all_tenders(COUNTRIES, DAYS)
     
     if not notices:
-        print("\n⚠️  Enhanced fields not supported or no tenders found")
-        print("   Falling back to minimal field set recommended")
+        print("\n⚠️  No tenders found")
         return
     
-    # Parse
-    print(f"\n📝 Parsing...")
-    tenders = [parse_tender(n) for n in notices]
-    print(f"   {len(tenders)} ✅")
+    # Process multi-lot tenders
+    tenders = detect_and_process_multilot(notices)
     
-    # Post-process: Detect multi-lot tenders
-    print(f"\n🔄 Detecting multi-lot tenders...")
-    notice_id_counts = {}
-    for t in tenders:
-        nid = t["notice_identifier"]
-        if nid:
-            notice_id_counts[nid] = notice_id_counts.get(nid, 0) + 1
-    
-    # Mark tenders that appear multiple times as multi-lot
-    multi_lot_count = 0
-    for t in tenders:
-        nid = t["notice_identifier"]
-        if nid and notice_id_counts[nid] > 1:
-            t["strategic"]["is_multi_lot"] = True
-            multi_lot_count += 1
-    
-    print(f"   Found {len([c for c in notice_id_counts.values() if c > 1])} multi-lot tenders ({multi_lot_count} lot records)")
-    
-    # Filter out expired tenders (deadline in the past)
+    # Filter expired
     print(f"\n🗓️  Filtering expired tenders...")
-    original_count = len(tenders)
-    active_tenders = []
-    for t in tenders:
-        days = t["dates"]["days_until_deadline"]
-        if days is None or days >= 0:
-            active_tenders.append(t)
-    
-    expired_count = original_count - len(active_tenders)
+    active_tenders = [
+        t for t in tenders 
+        if t["dates"]["days_until_deadline"] is None or t["dates"]["days_until_deadline"] >= 0
+    ]
+    expired_count = len(tenders) - len(active_tenders)
     print(f"   Removed {expired_count} expired tenders")
     print(f"   Kept {len(active_tenders)} active tenders")
+    
     tenders = active_tenders
     
-    # Deduplicate: Keep only first lot of multi-lot tenders for cleaner display
-    # Users can see all lots by clicking through to TED
-    print(f"\n🧹 Deduplicating multi-lot tenders...")
-    seen_notices = set()
-    deduplicated = []
+    # Calculate statistics
+    print(f"\n📊 Calculating statistics...")
+    
+    urgency_stats = defaultdict(int)
+    value_stats = defaultdict(int)
+    
     for t in tenders:
-        nid = t["notice_identifier"]
-        if nid not in seen_notices:
-            deduplicated.append(t)
-            seen_notices.add(nid)
+        urgency_stats[t["dates"]["urgency_level"]] += 1
+        if t["financial"]["value_category"]:
+            value_stats[t["financial"]["value_category"]] += 1
     
-    print(f"   Kept {len(deduplicated)} unique tenders (removed {len(tenders) - len(deduplicated)} duplicate lots)")
-    tenders = deduplicated
-    
-    # Stats
-    urgency = {}
-    for t in tenders:
-        u = t["dates"]["urgency_level"]
-        urgency[u] = urgency.get(u, 0) + 1
-    
-    value_cats = {}
-    for t in tenders:
-        c = t["financial"]["value_category"]
-        if c:
-            value_cats[c] = value_cats.get(c, 0) + 1
-    
-    sme = sum(1 for t in tenders if t["strategic"]["is_sme_accessible"])
-    innovative = sum(1 for t in tenders if t["strategic"]["is_innovative"])
+    sme_count = sum(1 for t in tenders if t["strategic"]["is_sme_accessible"])
+    innovative_count = sum(1 for t in tenders if t["strategic"]["is_innovative"])
+    framework_count = sum(1 for t in tenders if t["strategic"]["is_framework"])
+    multi_lot_count = sum(1 for t in tenders if t["strategic"]["is_multi_lot"])
     with_email = sum(1 for t in tenders if t["buyer"]["email"])
     with_barriers = sum(1 for t in tenders if t["requirements"]["security_clearance"] or t["requirements"]["guarantee_required"])
     
-    print(f"\n📊 Stats:")
+    stats = {
+        "urgency": dict(urgency_stats),
+        "value": dict(value_stats),
+        "sme": sme_count,
+        "innovative": innovative_count,
+        "framework": framework_count,
+        "multi_lot": multi_lot_count,
+        "with_email": with_email,
+        "with_barriers": with_barriers,
+    }
+    
     print(f"   Total: {len(tenders)}")
-    print(f"   Urgency: {urgency}")
-    print(f"   Value: {value_cats}")
-    print(f"   SME: {sme}")
-    print(f"   Innovation: {innovative}")
+    print(f"   Urgency: {dict(urgency_stats)}")
+    print(f"   Value: {dict(value_stats)}")
+    print(f"   SME Accessible: {sme_count}")
+    print(f"   Innovation: {innovative_count}")
+    print(f"   Framework: {framework_count}")
+    print(f"   Multi-Lot: {multi_lot_count}")
     print(f"   With Email: {with_email}")
     print(f"   With Barriers: {with_barriers}")
     
     # Save
-    print(f"\n💾 Saving...")
+    print(f"\n💾 Saving to {OUTPUT}...")
     output = {
         "metadata": {
             "fetched_at": datetime.now().isoformat(),
             "total": len(tenders),
             "fields": len(TENDER_FIELDS),
             "enhanced_features": True,
-            "stats": {
-                "urgency": urgency,
-                "value": value_cats,
-                "sme": sme,
-                "innovative": innovative,
-                "with_email": with_email,
-                "with_barriers": with_barriers,
-            }
+            "multi_lot_detection": True,
+            "stats": stats
         },
         "tenders": tenders
     }
@@ -735,31 +800,34 @@ def main():
     with open(OUTPUT, 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2, ensure_ascii=False, default=str)
     
-    print(f"✅ Saved to {OUTPUT}")
+    print(f"✅ Saved successfully!")
     
-    # Sample
+    # Show sample
     if tenders:
         s = tenders[0]
         print(f"\n{'='*80}")
-        print(f"SAMPLE TENDER (Full UI Data)")
+        print(f"SAMPLE TENDER")
         print(f"{'='*80}")
         print(f"Title: {s['title'][:70]}...")
+        print(f"ID: {s['publication_number']}")
         print(f"Buyer: {s['buyer']['name']} ({s['buyer']['country']})")
         if s['buyer']['email']:
             print(f"Email: {s['buyer']['email']}")
-        print(f"Deadline: {s['dates']['deadline_main']} ({s['dates']['urgency_level']})")
+        print(f"Deadline: {s['dates']['deadline_main']} ({s['dates']['urgency_level']}, {s['dates']['days_until_deadline']} days)")
+        
         if s['financial']['value_eur']:
             val = s['financial']
-            if val['currency'] and val['value_original']:
-                print(f"Value: {val['value_original']:,.0f} {val['currency']} = €{val['value_eur']:,.0f} ({val['value_category']})")
-        print(f"CPV: {s['classification']['cpv_code']}")
+            print(f"Value: €{val['value_eur']:,.0f} ({val['value_category']})")
         
-        # Strategic tags
+        print(f"CPV: {s['classification']['cpv_code']}")
+        print(f"Type: {s['classification']['contract_nature']} / {s['classification']['procedure_type']}")
+        
+        # Strategic
         tags = []
         if s['strategic']['is_sme_accessible']: tags.append("SME")
         if s['strategic']['is_framework']: tags.append("Framework")
+        if s['strategic']['is_multi_lot']: tags.append(f"Multi-Lot ({s['strategic']['total_lots']} lots)")
         if s['strategic']['is_innovative']: tags.append("Innovation")
-        if s['strategic']['is_social']: tags.append("Social")
         if tags:
             print(f"Tags: {', '.join(tags)}")
         
@@ -768,24 +836,15 @@ def main():
             print(f"⚠️  Security clearance required")
         if s['requirements']['guarantee_required']:
             print(f"⚠️  Financial guarantee required")
-        
-        print(f"Complexity: {s['requirements']['complexity_level']}")
-        
-        if s['award_criteria']['type']:
-            print(f"Award: {s['award_criteria']['type']}")
-        
-        if s['contract']['duration']:
-            print(f"Duration: {s['contract']['duration']}")
+        print(f"Complexity: {s['requirements']['complexity_level']} ({s['requirements']['complexity_score']}/100)")
         
         print(f"\nURLs:")
+        print(f"  TED: {s['urls']['ted_notice_url']}")
         if s['urls']['document_url']:
             print(f"  Docs: {s['urls']['document_url'][:60]}...")
-        if s['urls']['submission_url']:
-            print(f"  Submit: {s['urls']['submission_url'][:60]}...")
-        print(f"  TED: {s['urls']['ted_notice_url']}")
     
     print(f"\n{'='*80}")
-    print(f"✅ SUCCESS! Full UI data available")
+    print(f"✅ SUCCESS! Enhanced JSON ready for UI")
     print(f"{'='*80}\n")
 
 

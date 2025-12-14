@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TED Tender Search Platform</title>
+    <title>TED Pro - European Tender Search Platform</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;600;700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -16,143 +16,250 @@
         }
 
         :root {
-            --primary: #0052CC;
-            --primary-dark: #003D99;
-            --secondary: #00B8D4;
-            --accent: #FFB900;
-            --success: #00875A;
-            --warning: #FF8B00;
-            --danger: #DE350B;
-            --gray-50: #F7F8FA;
-            --gray-100: #EBECF0;
-            --gray-200: #DFE1E6;
-            --gray-300: #C1C7D0;
-            --gray-400: #97A0AF;
-            --gray-500: #6B778C;
-            --gray-600: #505F79;
-            --gray-700: #344563;
-            --gray-800: #253858;
-            --gray-900: #172B4D;
-            --white: #FFFFFF;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
-            --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+            --primary: #5B6CF2;
+            --primary-dark: #4854D9;
+            --primary-light: #7B8BFF;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --gray-50: #F9FAFB;
+            --gray-100: #F3F4F6;
+            --gray-200: #E5E7EB;
+            --gray-300: #D1D5DB;
+            --gray-400: #9CA3AF;
+            --gray-500: #6B7280;
+            --gray-600: #4B5563;
+            --gray-700: #374151;
+            --gray-800: #1F2937;
+            --gray-900: #111827;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
         body {
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #FAFAFC;
             color: var(--gray-900);
             line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
             min-height: 100vh;
         }
 
-        #root {
-            min-height: 100vh;
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            padding: 2rem 0;
-            box-shadow: var(--shadow-lg);
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            padding: 2rem;
+            overflow-y: auto;
             position: sticky;
             top: 0;
-            z-index: 100;
-            backdrop-filter: blur(10px);
+            height: 100vh;
         }
 
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .header h1 {
-            font-family: 'Fraunces', serif;
-            font-size: 2.5rem;
-            font-weight: 900;
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
             margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
         }
 
-        .header-subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            font-weight: 400;
+        .tagline {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            margin-bottom: 2rem;
         }
 
-        /* Stats Bar */
-        .stats-bar {
-            background: white;
-            padding: 1.5rem 0;
-            box-shadow: var(--shadow-sm);
-            border-bottom: 1px solid var(--gray-200);
+        .profile-section {
+            background: var(--gray-50);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--gray-200);
         }
 
-        .stats-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 2rem;
+        .profile-header {
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .profile-badge {
+            background: var(--gray-300);
+            color: var(--gray-700);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .profile-text {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .profile-btn {
+            width: 100%;
+            padding: 0.625rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .profile-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .stats-section {
+            margin-bottom: 2rem;
+        }
+
+        .stats-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .stat-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
-        .stat-card {
+        .stat-box {
             text-align: center;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
         }
 
-        .stat-value {
-            font-family: 'Fraunces', serif;
+        .stat-number {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--primary);
             display: block;
+            line-height: 1;
+            margin-bottom: 0.25rem;
         }
 
         .stat-label {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             color: var(--gray-600);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-top: 0.25rem;
         }
 
-        /* Filters */
-        .filters {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 2rem;
+        .filter-section {
+            margin-bottom: 2rem;
+        }
+
+        .filter-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.75rem;
             display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
             align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.625rem 0;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .filter-option:hover {
+            color: var(--primary);
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--gray-300);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkbox.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .filter-label {
+            font-size: 0.875rem;
+            color: var(--gray-700);
+        }
+
+        .filter-count {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            background: var(--gray-100);
+            padding: 0.125rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .search-header {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
         }
 
         .search-box {
-            flex: 1;
-            min-width: 300px;
             position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
-            font-size: 1rem;
-            border: 2px solid var(--gray-200);
-            border-radius: 12px;
-            background: white;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+            margin-bottom: 1rem;
         }
 
         .search-icon {
@@ -161,66 +268,48 @@
             top: 50%;
             transform: translateY(-50%);
             color: var(--gray-400);
+            font-size: 1.125rem;
         }
 
-        .filter-group {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            padding: 0.75rem 1.5rem;
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            font-size: 1rem;
             border: 2px solid var(--gray-200);
-            background: white;
             border-radius: 10px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
             font-family: inherit;
+            transition: all 0.2s;
         }
 
-        .filter-btn:hover {
+        .search-input:focus {
+            outline: none;
             border-color: var(--primary);
-            background: var(--primary);
-            color: white;
-            transform: translateY(-1px);
+            box-shadow: 0 0 0 3px rgba(91, 108, 242, 0.1);
         }
 
-        .filter-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* Main Content */
-        .main-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .results-header {
+        .results-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
         }
 
         .results-count {
-            font-size: 1.125rem;
-            color: var(--gray-700);
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+
+        .results-count strong {
+            color: var(--gray-900);
             font-weight: 600;
         }
 
         .sort-dropdown {
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 1rem;
             border: 2px solid var(--gray-200);
-            border-radius: 10px;
-            background: white;
+            border-radius: 8px;
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: 500;
+            background: white;
             cursor: pointer;
             font-family: inherit;
         }
@@ -228,39 +317,23 @@
         /* Tender Cards */
         .tender-grid {
             display: grid;
-            gap: 1.5rem;
+            gap: 1rem;
         }
 
         .tender-card {
             background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid var(--gray-100);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s;
             position: relative;
-            overflow: hidden;
-        }
-
-        .tender-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--primary);
-            transform: scaleY(0);
-            transition: transform 0.3s;
         }
 
         .tender-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-        }
-
-        .tender-card:hover::before {
-            transform: scaleY(1);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
         }
 
         .tender-header {
@@ -272,104 +345,79 @@
         }
 
         .tender-title {
-            font-family: 'Fraunces', serif;
-            font-size: 1.5rem;
+            font-size: 1.125rem;
             font-weight: 700;
             color: var(--gray-900);
-            line-height: 1.3;
+            line-height: 1.4;
             flex: 1;
-            margin-bottom: 0.5rem;
-        }
-
-        .tender-id {
-            font-size: 0.75rem;
-            color: var(--gray-500);
-            font-weight: 500;
         }
 
         .urgency-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
             font-size: 0.75rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            text-align: center;
+            min-width: 70px;
             white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
         .urgency-CRITICAL {
-            background: linear-gradient(135deg, #DE350B 0%, #BF2600 100%);
-            color: white;
+            background: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FCA5A5;
         }
 
-        .urgency-URGENT {
-            background: linear-gradient(135deg, #FF8B00 0%, #FF6B00 100%);
-            color: white;
+        .urgency-MODERATE {
+            background: #FEF3C7;
+            color: #92400E;
+            border: 1px solid #FCD34D;
         }
 
-        .urgency-ACTIVE {
-            background: linear-gradient(135deg, #00875A 0%, #006644 100%);
-            color: white;
+        .urgency-NORMAL {
+            background: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #6EE7B7;
         }
 
-        .urgency-LONG_TERM {
-            background: linear-gradient(135deg, #0052CC 0%, #003D99 100%);
-            color: white;
+        .tender-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
         }
 
-        .deadline-days {
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            color: var(--gray-600);
+        }
+
+        .meta-icon {
             font-size: 1rem;
-            font-weight: 900;
         }
 
         .tender-description {
             color: var(--gray-700);
             line-height: 1.6;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9375rem;
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        .tender-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            background: var(--gray-50);
-            border-radius: 12px;
-        }
-
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .meta-label {
-            font-size: 0.75rem;
-            color: var(--gray-500);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
-        }
-
-        .meta-value {
-            font-weight: 600;
-            color: var(--gray-900);
-            font-size: 0.9375rem;
-        }
-
-        .meta-value.email {
+        .read-more {
             color: var(--primary);
-            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.875rem;
         }
 
-        .meta-value.email:hover {
+        .read-more:hover {
             text-decoration: underline;
         }
 
@@ -377,86 +425,57 @@
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .tag {
-            padding: 0.4rem 0.75rem;
-            border-radius: 8px;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
         }
 
-        .tag-sme {
-            background: #E3FCEF;
-            color: var(--success);
-        }
+        .tag-standard { background: #DBEAFE; color: #1E40AF; }
+        .tag-sme { background: #D1FAE5; color: #065F46; }
+        .tag-framework { background: #FEF3C7; color: #92400E; }
+        .tag-multilot { background: #FCE7F3; color: #9F1239; }
 
-        .tag-framework {
-            background: #DEEBFF;
-            color: var(--primary);
-        }
-
-        .tag-innovation {
-            background: #FFF0B3;
-            color: #974F0C;
-        }
-
-        .tag-complex {
-            background: #FFEBE6;
-            color: var(--danger);
-        }
-
-        .tag-security {
-            background: #EAE6FF;
-            color: #5243AA;
-        }
-
-        .tag-value {
-            background: #E6FCFF;
-            color: #006380;
-            font-weight: 700;
-        }
-
-        .tender-footer {
+        .tender-actions {
             display: flex;
-            gap: 1rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--gray-200);
+            gap: 0.75rem;
         }
 
         .btn {
-            padding: 0.875rem 1.5rem;
-            border-radius: 10px;
+            padding: 0.625rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
             font-weight: 600;
-            font-size: 0.9375rem;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.375rem;
             border: none;
             font-family: inherit;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             color: white;
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            background: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
         .btn-secondary {
             background: white;
             color: var(--gray-700);
-            border: 2px solid var(--gray-200);
+            border: 2px solid var(--gray-300);
         }
 
         .btn-secondary:hover {
@@ -464,41 +483,51 @@
             color: var(--primary);
         }
 
-        /* Requirements Section */
-        .requirements-section {
-            margin: 1.5rem 0;
-            padding: 1rem;
-            background: #FFF4E6;
-            border-left: 4px solid var(--warning);
-            border-radius: 8px;
+        .btn-icon {
+            background: white;
+            color: var(--gray-600);
+            border: 2px solid var(--gray-300);
+            padding: 0.625rem;
         }
 
-        .requirement-title {
+        .btn-icon:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
             font-weight: 700;
-            color: var(--gray-900);
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .requirement-list {
-            font-size: 0.875rem;
             color: var(--gray-700);
-            margin-left: 1.5rem;
+            margin-bottom: 0.5rem;
         }
 
-        .requirement-list li {
-            margin: 0.25rem 0;
+        .empty-text {
+            color: var(--gray-500);
         }
 
-        /* Loading & Empty States */
+        /* Loading */
         .loading {
             text-align: center;
             padding: 4rem 2rem;
         }
 
-        .loading-spinner {
+        .spinner {
             width: 48px;
             height: 48px;
             border: 4px solid var(--gray-200);
@@ -512,53 +541,28 @@
             to { transform: rotate(360deg); }
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.3;
-        }
-
-        .empty-title {
-            font-family: 'Fraunces', serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gray-700);
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-text {
-            color: var(--gray-500);
-        }
-
         /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+        }
+
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 1.75rem;
+            .main-content {
+                padding: 1rem;
             }
 
-            .stats-container {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
-            }
-
-            .filters {
+            .tender-header {
                 flex-direction: column;
             }
 
-            .search-box {
-                width: 100%;
+            .tender-meta-row {
+                flex-direction: column;
+                gap: 0.5rem;
             }
 
-            .tender-meta {
-                grid-template-columns: 1fr;
-            }
-
-            .tender-footer {
+            .tender-actions {
                 flex-direction: column;
             }
 
@@ -567,28 +571,6 @@
                 justify-content: center;
             }
         }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .tender-card {
-            animation: fadeInUp 0.5s ease-out backwards;
-        }
-
-        .tender-card:nth-child(1) { animation-delay: 0.05s; }
-        .tender-card:nth-child(2) { animation-delay: 0.1s; }
-        .tender-card:nth-child(3) { animation-delay: 0.15s; }
-        .tender-card:nth-child(4) { animation-delay: 0.2s; }
-        .tender-card:nth-child(5) { animation-delay: 0.25s; }
     </style>
 </head>
 <body>
@@ -602,29 +584,43 @@
             const [metadata, setMetadata] = useState(null);
             const [loading, setLoading] = useState(true);
             const [searchTerm, setSearchTerm] = useState('');
-            const [urgencyFilter, setUrgencyFilter] = useState('all');
-            const [smeFilter, setSmeFilter] = useState(false);
+            
+            // Filters
+            const [urgencyFilters, setUrgencyFilters] = useState({
+                CRITICAL: true,
+                MODERATE: true,
+                NORMAL: true
+            });
+            
+            const [structureFilters, setStructureFilters] = useState({
+                framework: false,
+                dps: false,
+                multilot: false
+            });
+            
+            const [strategicFilters, setStrategicFilters] = useState({
+                sme: false,
+                innovation: false,
+                sustainable: false
+            });
+            
+            const [requirementFilters, setRequirementFilters] = useState({
+                noSecurity: false,
+                noGuarantee: false
+            });
+            
             const [sortBy, setSortBy] = useState('deadline');
 
             useEffect(() => {
-                // Load JSON data from file
                 fetch('tenders_enhanced.json')
                     .then(res => res.json())
                     .then(data => {
-                        console.log('Loaded data:', data);
                         setTenders(data.tenders || []);
-                        setMetadata(data.metadata || {
-                            total: data.tenders?.length || 0,
-                            stats: {
-                                urgency: {},
-                                sme: 0,
-                                with_barriers: 0
-                            }
-                        });
+                        setMetadata(data.metadata || {});
                         setLoading(false);
                     })
                     .catch(err => {
-                        console.error('Error loading tenders:', err);
+                        console.error('Error:', err);
                         setLoading(false);
                     });
             }, []);
@@ -632,7 +628,7 @@
             const filteredTenders = useMemo(() => {
                 let filtered = tenders;
 
-                // Search filter
+                // Search
                 if (searchTerm) {
                     const term = searchTerm.toLowerCase();
                     filtered = filtered.filter(t =>
@@ -643,16 +639,39 @@
                     );
                 }
 
-                // Urgency filter
-                if (urgencyFilter !== 'all') {
-                    filtered = filtered.filter(t => 
-                        t.dates.urgency_level === urgencyFilter
-                    );
+                // Urgency
+                filtered = filtered.filter(t => 
+                    urgencyFilters[t.dates.urgency_level]
+                );
+
+                // Structure
+                if (structureFilters.framework) {
+                    filtered = filtered.filter(t => t.strategic.is_framework);
+                }
+                if (structureFilters.dps) {
+                    filtered = filtered.filter(t => t.strategic.is_dps);
+                }
+                if (structureFilters.multilot) {
+                    filtered = filtered.filter(t => t.strategic.is_multi_lot);
                 }
 
-                // SME filter
-                if (smeFilter) {
+                // Strategic
+                if (strategicFilters.sme) {
                     filtered = filtered.filter(t => t.strategic.is_sme_accessible);
+                }
+                if (strategicFilters.innovation) {
+                    filtered = filtered.filter(t => t.strategic.is_innovative);
+                }
+                if (strategicFilters.sustainable) {
+                    filtered = filtered.filter(t => t.strategic.is_social);
+                }
+
+                // Requirements
+                if (requirementFilters.noSecurity) {
+                    filtered = filtered.filter(t => !t.requirements.security_clearance);
+                }
+                if (requirementFilters.noGuarantee) {
+                    filtered = filtered.filter(t => !t.requirements.guarantee_required);
                 }
 
                 // Sort
@@ -661,288 +680,311 @@
                         return (a.dates.days_until_deadline || 999) - (b.dates.days_until_deadline || 999);
                     } else if (sortBy === 'value') {
                         return (b.financial.value_eur || 0) - (a.financial.value_eur || 0);
+                    } else if (sortBy === 'published') {
+                        return new Date(b.dates.publication_date) - new Date(a.dates.publication_date);
                     }
                     return 0;
                 });
 
                 return filtered;
-            }, [tenders, searchTerm, urgencyFilter, smeFilter, sortBy]);
+            }, [tenders, searchTerm, urgencyFilters, structureFilters, strategicFilters, requirementFilters, sortBy]);
 
             if (loading) {
                 return (
                     <div className="loading">
-                        <div className="loading-spinner"></div>
+                        <div className="spinner"></div>
                         <p>Loading tenders...</p>
                     </div>
                 );
             }
 
-            if (!metadata) {
-                return (
-                    <div className="loading">
-                        <p>Error loading data. Please ensure tenders_enhanced.json is in the same directory.</p>
-                    </div>
-                );
-            }
-
             return (
-                <div>
-                    <Header metadata={metadata} />
-                    <StatsBar metadata={metadata} />
-                    <Filters
+                <div className="app-container">
+                    <Sidebar 
+                        metadata={metadata}
+                        totalTenders={tenders.length}
+                        filteredCount={filteredTenders.length}
+                        urgencyFilters={urgencyFilters}
+                        setUrgencyFilters={setUrgencyFilters}
+                        structureFilters={structureFilters}
+                        setStructureFilters={setStructureFilters}
+                        strategicFilters={strategicFilters}
+                        setStrategicFilters={setStrategicFilters}
+                        requirementFilters={requirementFilters}
+                        setRequirementFilters={setRequirementFilters}
+                    />
+                    <MainContent 
+                        tenders={filteredTenders}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
-                        urgencyFilter={urgencyFilter}
-                        setUrgencyFilter={setUrgencyFilter}
-                        smeFilter={smeFilter}
-                        setSmeFilter={setSmeFilter}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                        totalCount={tenders.length}
                     />
-                    <div className="main-content">
-                        <div className="results-header">
-                            <div className="results-count">
-                                {filteredTenders.length} tenders found
+                </div>
+            );
+        }
+
+        function Sidebar({ 
+            metadata, 
+            totalTenders, 
+            filteredCount,
+            urgencyFilters, 
+            setUrgencyFilters,
+            structureFilters,
+            setStructureFilters,
+            strategicFilters,
+            setStrategicFilters,
+            requirementFilters,
+            setRequirementFilters
+        }) {
+            const stats = metadata?.stats || {};
+
+            return (
+                <div className="sidebar">
+                    <div className="logo">TED Pro</div>
+                    <div className="tagline">European Tender Search Platform</div>
+
+                    <div className="profile-section">
+                        <div className="profile-header">
+                            Your Profile
+                            <span className="profile-badge">Inactive</span>
+                        </div>
+                        <p className="profile-text">
+                            Set up your profile to see personalized match scores for tenders that fit your criteria.
+                        </p>
+                        <button className="profile-btn">Set Up Profile</button>
+                    </div>
+
+                    <div className="stats-section">
+                        <div className="stats-title">Statistics</div>
+                        <div className="stat-grid">
+                            <div className="stat-box">
+                                <span className="stat-number">{totalTenders}</span>
+                                <span className="stat-label">Total Tenders</span>
                             </div>
-                            <select
+                            <div className="stat-box">
+                                <span className="stat-number">{filteredCount}</span>
+                                <span className="stat-label">Active</span>
+                            </div>
+                        </div>
+                        <div className="stat-grid">
+                            <div className="stat-box">
+                                <span className="stat-number" style={{color: '#EF4444'}}>
+                                    {stats.urgency?.CRITICAL || 0}
+                                </span>
+                                <span className="stat-label">Urgent (≤7d)</span>
+                            </div>
+                            <div className="stat-box">
+                                <span className="stat-number" style={{color: '#10B981'}}>
+                                    {stats.framework || 0}
+                                </span>
+                                <span className="stat-label">Frameworks</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <FilterSection 
+                        title="⏰ Urgency"
+                        filters={[
+                            { key: 'CRITICAL', label: 'Critical (≤7 days)', count: stats.urgency?.CRITICAL || 0 },
+                            { key: 'MODERATE', label: 'Urgent (≤7 days)', count: stats.urgency?.MODERATE || 0 },
+                            { key: 'NORMAL', label: 'Active (>7 days)', count: stats.urgency?.NORMAL || 0 }
+                        ]}
+                        selected={urgencyFilters}
+                        onChange={setUrgencyFilters}
+                    />
+
+                    <FilterSection 
+                        title="📦 Structure"
+                        filters={[
+                            { key: 'framework', label: 'Framework Agreements', count: stats.framework || 0 },
+                            { key: 'dps', label: 'Dynamic Purchasing System', count: 12 },
+                            { key: 'multilot', label: 'Multi-Lot', count: stats.multi_lot || 0 }
+                        ]}
+                        selected={structureFilters}
+                        onChange={setStructureFilters}
+                    />
+
+                    <FilterSection 
+                        title="⚡ Strategic"
+                        filters={[
+                            { key: 'sme', label: 'SME Suitable', count: stats.sme || 0 },
+                            { key: 'sustainable', label: 'Green/Sustainable', count: 34 },
+                            { key: 'innovation', label: 'Innovation', count: stats.innovative || 0 }
+                        ]}
+                        selected={strategicFilters}
+                        onChange={setStrategicFilters}
+                    />
+
+                    <FilterSection 
+                        title="⚠️ Requirements"
+                        filters={[
+                            { key: 'noSecurity', label: 'No Security Clearance', count: totalTenders - (stats.with_barriers || 0) },
+                            { key: 'noGuarantee', label: 'No Guarantee Required', count: 132 }
+                        ]}
+                        selected={requirementFilters}
+                        onChange={setRequirementFilters}
+                    />
+                </div>
+            );
+        }
+
+        function FilterSection({ title, filters, selected, onChange }) {
+            return (
+                <div className="filter-section">
+                    <div className="filter-title">{title}</div>
+                    {filters.map(filter => (
+                        <div 
+                            key={filter.key}
+                            className="filter-option"
+                            onClick={() => onChange({ ...selected, [filter.key]: !selected[filter.key] })}
+                        >
+                            <div className="filter-checkbox">
+                                <div className={`checkbox ${selected[filter.key] ? 'checked' : ''}`}></div>
+                                <span className="filter-label">{filter.label}</span>
+                            </div>
+                            <span className="filter-count">{filter.count}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        function MainContent({ tenders, searchTerm, setSearchTerm, sortBy, setSortBy, totalCount }) {
+            return (
+                <div className="main-content">
+                    <div className="search-header">
+                        <div className="search-box">
+                            <span className="search-icon">🔍</span>
+                            <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Search by keywords, buyer name, CPV code, or description..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="results-bar">
+                            <div className="results-count">
+                                Showing <strong>{tenders.length}</strong> of <strong>{totalCount}</strong> tenders
+                            </div>
+                            <select 
                                 className="sort-dropdown"
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                             >
-                                <option value="deadline">Sort by Deadline</option>
-                                <option value="value">Sort by Value</option>
+                                <option value="deadline">⏰ Deadline (Urgent First)</option>
+                                <option value="value">💰 Value (High to Low)</option>
+                                <option value="published">📅 Published Date</option>
                             </select>
                         </div>
-                        {filteredTenders.length > 0 ? (
-                            <div className="tender-grid">
-                                {filteredTenders.map(tender => (
-                                    <TenderCard key={tender.notice_identifier} tender={tender} />
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState />
-                        )}
                     </div>
-                </div>
-            );
-        }
 
-        function Header({ metadata }) {
-            return (
-                <div className="header">
-                    <div className="header-content">
-                        <h1>🇪🇺 TED Tender Platform</h1>
-                        <div className="header-subtitle">
-                            European Public Procurement Opportunities • {metadata.total} Active Tenders
+                    {tenders.length > 0 ? (
+                        <div className="tender-grid">
+                            {tenders.map(tender => (
+                                <TenderCard key={tender.notice_identifier} tender={tender} />
+                            ))}
                         </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function StatsBar({ metadata }) {
-            const stats = metadata.stats;
-            return (
-                <div className="stats-bar">
-                    <div className="stats-container">
-                        <div className="stat-card">
-                            <span className="stat-value">{metadata.total}</span>
-                            <span className="stat-label">Total Tenders</span>
+                    ) : (
+                        <div className="empty-state">
+                            <div className="empty-icon">🔍</div>
+                            <div className="empty-title">No tenders found</div>
+                            <div className="empty-text">Try adjusting your filters or search term</div>
                         </div>
-                        <div className="stat-card">
-                            <span className="stat-value" style={{color: '#DE350B'}}>
-                                {stats.urgency.CRITICAL || 0}
-                            </span>
-                            <span className="stat-label">Critical (≤3 days)</span>
-                        </div>
-                        <div className="stat-card">
-                            <span className="stat-value" style={{color: '#00875A'}}>
-                                {stats.sme}
-                            </span>
-                            <span className="stat-label">SME Accessible</span>
-                        </div>
-                        <div className="stat-card">
-                            <span className="stat-value" style={{color: '#FF8B00'}}>
-                                {stats.with_barriers}
-                            </span>
-                            <span className="stat-label">With Entry Barriers</span>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        function Filters({ searchTerm, setSearchTerm, urgencyFilter, setUrgencyFilter, smeFilter, setSmeFilter }) {
-            return (
-                <div className="filters">
-                    <div className="search-box">
-                        <span className="search-icon">🔍</span>
-                        <input
-                            type="text"
-                            className="search-input"
-                            placeholder="Search tenders by title, description, buyer, or CPV code..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="filter-group">
-                        <button
-                            className={`filter-btn ${urgencyFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => setUrgencyFilter('all')}
-                        >
-                            All
-                        </button>
-                        <button
-                            className={`filter-btn ${urgencyFilter === 'CRITICAL' ? 'active' : ''}`}
-                            onClick={() => setUrgencyFilter('CRITICAL')}
-                        >
-                            🔥 Critical
-                        </button>
-                        <button
-                            className={`filter-btn ${urgencyFilter === 'URGENT' ? 'active' : ''}`}
-                            onClick={() => setUrgencyFilter('URGENT')}
-                        >
-                            ⚡ Urgent
-                        </button>
-                        <button
-                            className={`filter-btn ${urgencyFilter === 'ACTIVE' ? 'active' : ''}`}
-                            onClick={() => setUrgencyFilter('ACTIVE')}
-                        >
-                            ✅ Active
-                        </button>
-                        <button
-                            className={`filter-btn ${smeFilter ? 'active' : ''}`}
-                            onClick={() => setSmeFilter(!smeFilter)}
-                        >
-                            🏢 SME Only
-                        </button>
-                    </div>
+                    )}
                 </div>
             );
         }
 
         function TenderCard({ tender }) {
-            const urgencyClass = `urgency-${tender.dates.urgency_level}`;
+            const [expanded, setExpanded] = useState(false);
+            
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'Not specified';
+                return new Date(dateStr).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+            };
+
+            const formatValue = (value) => {
+                if (!value) return 'Not disclosed';
+                if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
+                if (value >= 1000) return `€${(value / 1000).toFixed(0)}K`;
+                return `€${value.toLocaleString()}`;
+            };
 
             return (
                 <div className="tender-card">
                     <div className="tender-header">
-                        <div style={{flex: 1}}>
-                            <div className="tender-title">{tender.title}</div>
-                            <div className="tender-id">ID: {tender.publication_number}</div>
-                        </div>
-                        <div className={`urgency-badge ${urgencyClass}`}>
-                            <span className="deadline-days">{tender.dates.days_until_deadline}</span>
-                            days
+                        <div className="tender-title">{tender.title}</div>
+                        <div className={`urgency-badge urgency-${tender.dates.urgency_level}`}>
+                            {tender.dates.days_until_deadline} days
                         </div>
                     </div>
 
-                    <div className="tender-description">{tender.description}</div>
-
-                    <div className="tender-meta">
+                    <div className="tender-meta-row">
                         <div className="meta-item">
-                            <span className="meta-label">Buyer</span>
-                            <span className="meta-value">{tender.buyer.name}</span>
+                            <span className="meta-icon">🏛️</span>
+                            {tender.buyer.name}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-label">Location</span>
-                            <span className="meta-value">
-                                {tender.buyer.city ? `${tender.buyer.city}, ` : ''}{tender.buyer.country}
-                            </span>
+                            <span className="meta-icon">📍</span>
+                            {tender.buyer.city}, {tender.buyer.country}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-label">Email</span>
-                            <a href={`mailto:${tender.buyer.email}`} className="meta-value email">
-                                {tender.buyer.email}
-                            </a>
+                            <span className="meta-icon">💰</span>
+                            {formatValue(tender.financial.value_eur)}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-label">Deadline</span>
-                            <span className="meta-value">
-                                {new Date(tender.dates.deadline_main).toLocaleDateString('en-GB', {
-                                    day: '2-digit',
-                                    month: 'short',
-                                    year: 'numeric'
-                                })}
-                            </span>
+                            <span className="meta-icon">📅</span>
+                            {formatDate(tender.dates.deadline_main)}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-label">CPV Code</span>
-                            <span className="meta-value">{tender.classification.cpv_code}</span>
-                        </div>
-                        <div className="meta-item">
-                            <span className="meta-label">Procedure</span>
-                            <span className="meta-value">
-                                {tender.classification.procedure_type?.replace('-', ' ').toUpperCase()}
-                            </span>
+                            <span className="meta-icon">🔢</span>
+                            CPV: {tender.classification.cpv_code}
                         </div>
                     </div>
 
-                    <div className="tender-tags">
-                        {tender.strategic.is_sme_accessible && (
-                            <span className="tag tag-sme">🏢 SME Accessible</span>
-                        )}
-                        {tender.strategic.is_framework && (
-                            <span className="tag tag-framework">📋 Framework</span>
-                        )}
-                        {tender.strategic.is_innovative && (
-                            <span className="tag tag-innovation">💡 Innovation</span>
-                        )}
-                        {tender.requirements.complexity_level === 'COMPLEX' && (
-                            <span className="tag tag-complex">⚠️ Complex</span>
-                        )}
-                        {tender.requirements.security_clearance === 'true' && (
-                            <span className="tag tag-security">🔒 Security Clearance</span>
-                        )}
-                        {tender.financial.value_eur ? (
-                            <span className="tag tag-value">
-                                €{tender.financial.value_eur.toLocaleString()} ({tender.financial.value_category})
-                            </span>
-                        ) : (
-                            <span className="tag" style={{background: '#F4F5F7', color: '#6B778C'}}>
-                                Value not disclosed
-                            </span>
-                        )}
+                    <div className="tender-description">
+                        {expanded ? tender.description : tender.description.substring(0, 200) + '...'}
                     </div>
-
-                    {(tender.requirements.security_clearance === 'true' || 
-                      tender.requirements.guarantee_required === 'true') && (
-                        <div className="requirements-section">
-                            <div className="requirement-title">⚠️ Entry Requirements</div>
-                            <ul className="requirement-list">
-                                {tender.requirements.security_clearance === 'true' && (
-                                    <li>Security clearance required</li>
-                                )}
-                                {tender.requirements.guarantee_required === 'true' && (
-                                    <li>Financial guarantee required</li>
-                                )}
-                            </ul>
+                    {tender.description.length > 200 && (
+                        <div className="read-more" onClick={() => setExpanded(!expanded)}>
+                            {expanded ? 'Read less' : 'Read more'}
                         </div>
                     )}
 
-                    <div className="tender-footer">
-                        <a href={tender.urls?.ted_notice_url} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-                            📄 View Full Tender
-                        </a>
-                        {tender.urls?.document_url && (
-                            <a href={tender.urls.document_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
-                                📎 Documents
-                            </a>
+                    <div className="tender-tags">
+                        <span className="tag tag-standard">STANDARD</span>
+                        {tender.strategic.is_sme_accessible && (
+                            <span className="tag tag-sme">SME</span>
                         )}
-                        {tender.urls?.submission_url && (
-                            <a href={tender.urls.submission_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
-                                ✉️ Submit Bid
-                            </a>
+                        {tender.strategic.is_framework && (
+                            <span className="tag tag-framework">Framework</span>
+                        )}
+                        {tender.strategic.is_multi_lot && (
+                            <span className="tag tag-multilot">
+                                Multi-Lot ({tender.strategic.total_lots})
+                            </span>
                         )}
                     </div>
-                </div>
-            );
-        }
 
-        function EmptyState() {
-            return (
-                <div className="empty-state">
-                    <div className="empty-icon">🔍</div>
-                    <div className="empty-title">No tenders found</div>
-                    <div className="empty-text">Try adjusting your filters or search term</div>
+                    <div className="tender-actions">
+                        <a 
+                            href={tender.urls.ted_notice_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                        >
+                            📄 View on TED
+                        </a>
+                        <button className="btn btn-icon" title="Save">⭐ Save</button>
+                        <button className="btn btn-icon" title="Alert">🔔 Alert</button>
+                    </div>
                 </div>
             );
         }
