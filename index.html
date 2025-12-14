@@ -36,6 +36,7 @@
             --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
 
         body {
@@ -75,6 +76,7 @@
             margin-bottom: 2rem;
         }
 
+        /* Profile Section */
         .profile-section {
             background: var(--gray-50);
             padding: 1rem;
@@ -93,8 +95,6 @@
         }
 
         .profile-badge {
-            background: var(--gray-300);
-            color: var(--gray-700);
             padding: 0.25rem 0.5rem;
             border-radius: 6px;
             font-size: 0.7rem;
@@ -102,11 +102,44 @@
             text-transform: uppercase;
         }
 
+        .profile-badge.inactive {
+            background: var(--gray-300);
+            color: var(--gray-700);
+        }
+
+        .profile-badge.active {
+            background: var(--success);
+            color: white;
+        }
+
         .profile-text {
             font-size: 0.8rem;
             color: var(--gray-600);
             margin-bottom: 0.75rem;
             line-height: 1.5;
+        }
+
+        .profile-summary {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .profile-summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+        }
+
+        .profile-summary-label {
+            color: var(--gray-600);
+        }
+
+        .profile-summary-value {
+            font-weight: 600;
+            color: var(--gray-900);
         }
 
         .profile-btn {
@@ -126,6 +159,19 @@
             background: var(--primary-dark);
         }
 
+        .profile-btn.secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-300);
+            margin-top: 0.5rem;
+        }
+
+        .profile-btn.secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Stats Section */
         .stats-section {
             margin-bottom: 2rem;
         }
@@ -169,6 +215,7 @@
             letter-spacing: 0.05em;
         }
 
+        /* Filter Section */
         .filter-section {
             margin-bottom: 2rem;
         }
@@ -238,6 +285,126 @@
             padding: 0.125rem 0.5rem;
             border-radius: 12px;
             font-weight: 600;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-header {
+            padding: 2rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-subtitle {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 108, 242, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .form-checkgroup {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .form-check-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .form-check-item:hover {
+            border-color: var(--primary);
+        }
+
+        .form-check-item.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
         }
 
         /* Main Content */
@@ -327,7 +494,6 @@
             box-shadow: var(--shadow);
             border: 1px solid var(--gray-200);
             transition: all 0.2s;
-            position: relative;
         }
 
         .tender-card:hover {
@@ -395,15 +561,14 @@
             color: var(--gray-600);
         }
 
-        .meta-icon {
-            font-size: 1rem;
-        }
-
         .tender-description {
             color: var(--gray-700);
             line-height: 1.6;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             font-size: 0.9375rem;
+        }
+
+        .tender-description.collapsed {
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -415,6 +580,8 @@
             font-weight: 500;
             cursor: pointer;
             font-size: 0.875rem;
+            display: inline-block;
+            margin-bottom: 1rem;
         }
 
         .read-more:hover {
@@ -495,8 +662,8 @@
             border-color: var(--primary);
         }
 
-        /* Empty State */
-        .empty-state {
+        /* Empty/Loading States */
+        .empty-state, .loading {
             text-align: center;
             padding: 4rem 2rem;
             background: white;
@@ -519,12 +686,6 @@
 
         .empty-text {
             color: var(--gray-500);
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 4rem 2rem;
         }
 
         .spinner {
@@ -579,11 +740,29 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // LocalStorage helpers
+        const PROFILE_KEY = 'ted_pro_profile';
+        
+        const loadProfile = () => {
+            const stored = localStorage.getItem(PROFILE_KEY);
+            return stored ? JSON.parse(stored) : null;
+        };
+
+        const saveProfile = (profile) => {
+            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+        };
+
+        const clearProfile = () => {
+            localStorage.removeItem(PROFILE_KEY);
+        };
+
         function App() {
             const [tenders, setTenders] = useState([]);
             const [metadata, setMetadata] = useState(null);
             const [loading, setLoading] = useState(true);
             const [searchTerm, setSearchTerm] = useState('');
+            const [profile, setProfile] = useState(loadProfile());
+            const [showProfileModal, setShowProfileModal] = useState(false);
             
             // Filters
             const [urgencyFilters, setUrgencyFilters] = useState({
@@ -624,6 +803,17 @@
                         setLoading(false);
                     });
             }, []);
+
+            const handleSaveProfile = (newProfile) => {
+                setProfile(newProfile);
+                saveProfile(newProfile);
+                setShowProfileModal(false);
+            };
+
+            const handleClearProfile = () => {
+                setProfile(null);
+                clearProfile();
+            };
 
             const filteredTenders = useMemo(() => {
                 let filtered = tenders;
@@ -674,6 +864,24 @@
                     filtered = filtered.filter(t => !t.requirements.guarantee_required);
                 }
 
+                // Profile-based filtering
+                if (profile) {
+                    // Filter by countries
+                    if (profile.countries && profile.countries.length > 0) {
+                        filtered = filtered.filter(t => 
+                            profile.countries.includes(t.buyer.country)
+                        );
+                    }
+                    
+                    // Filter by CPV codes (first 2 digits)
+                    if (profile.industries && profile.industries.length > 0) {
+                        filtered = filtered.filter(t => {
+                            const cpv2 = t.classification.cpv_code?.substring(0, 2);
+                            return profile.industries.includes(cpv2);
+                        });
+                    }
+                }
+
                 // Sort
                 filtered.sort((a, b) => {
                     if (sortBy === 'deadline') {
@@ -687,7 +895,7 @@
                 });
 
                 return filtered;
-            }, [tenders, searchTerm, urgencyFilters, structureFilters, strategicFilters, requirementFilters, sortBy]);
+            }, [tenders, searchTerm, urgencyFilters, structureFilters, strategicFilters, requirementFilters, sortBy, profile]);
 
             if (loading) {
                 return (
@@ -712,6 +920,9 @@
                         setStrategicFilters={setStrategicFilters}
                         requirementFilters={requirementFilters}
                         setRequirementFilters={setRequirementFilters}
+                        profile={profile}
+                        onShowProfileModal={() => setShowProfileModal(true)}
+                        onClearProfile={handleClearProfile}
                     />
                     <MainContent 
                         tenders={filteredTenders}
@@ -721,6 +932,13 @@
                         setSortBy={setSortBy}
                         totalCount={tenders.length}
                     />
+                    {showProfileModal && (
+                        <ProfileModal
+                            profile={profile}
+                            onSave={handleSaveProfile}
+                            onClose={() => setShowProfileModal(false)}
+                        />
+                    )}
                 </div>
             );
         }
@@ -736,7 +954,10 @@
             strategicFilters,
             setStrategicFilters,
             requirementFilters,
-            setRequirementFilters
+            setRequirementFilters,
+            profile,
+            onShowProfileModal,
+            onClearProfile
         }) {
             const stats = metadata?.stats || {};
 
@@ -748,12 +969,44 @@
                     <div className="profile-section">
                         <div className="profile-header">
                             Your Profile
-                            <span className="profile-badge">Inactive</span>
+                            <span className={`profile-badge ${profile ? 'active' : 'inactive'}`}>
+                                {profile ? 'Active' : 'Inactive'}
+                            </span>
                         </div>
-                        <p className="profile-text">
-                            Set up your profile to see personalized match scores for tenders that fit your criteria.
-                        </p>
-                        <button className="profile-btn">Set Up Profile</button>
+                        
+                        {profile ? (
+                            <>
+                                <div className="profile-summary">
+                                    <div className="profile-summary-item">
+                                        <span className="profile-summary-label">Company:</span>
+                                        <span className="profile-summary-value">{profile.companyName}</span>
+                                    </div>
+                                    <div className="profile-summary-item">
+                                        <span className="profile-summary-label">Countries:</span>
+                                        <span className="profile-summary-value">{profile.countries?.length || 0}</span>
+                                    </div>
+                                    <div className="profile-summary-item">
+                                        <span className="profile-summary-label">Industries:</span>
+                                        <span className="profile-summary-value">{profile.industries?.length || 0}</span>
+                                    </div>
+                                </div>
+                                <button className="profile-btn" onClick={onShowProfileModal}>
+                                    Edit Profile
+                                </button>
+                                <button className="profile-btn secondary" onClick={onClearProfile}>
+                                    Clear Profile
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="profile-text">
+                                    Set up your profile to see personalized match scores for tenders that fit your criteria.
+                                </p>
+                                <button className="profile-btn" onClick={onShowProfileModal}>
+                                    Set Up Profile
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     <div className="stats-section">
@@ -765,7 +1018,7 @@
                             </div>
                             <div className="stat-box">
                                 <span className="stat-number">{filteredCount}</span>
-                                <span className="stat-label">Active</span>
+                                <span className="stat-label">Filtered</span>
                             </div>
                         </div>
                         <div className="stat-grid">
@@ -788,8 +1041,8 @@
                         title="⏰ Urgency"
                         filters={[
                             { key: 'CRITICAL', label: 'Critical (≤7 days)', count: stats.urgency?.CRITICAL || 0 },
-                            { key: 'MODERATE', label: 'Urgent (≤7 days)', count: stats.urgency?.MODERATE || 0 },
-                            { key: 'NORMAL', label: 'Active (>7 days)', count: stats.urgency?.NORMAL || 0 }
+                            { key: 'MODERATE', label: 'Moderate (≤14 days)', count: stats.urgency?.MODERATE || 0 },
+                            { key: 'NORMAL', label: 'Normal (>14 days)', count: stats.urgency?.NORMAL || 0 }
                         ]}
                         selected={urgencyFilters}
                         onChange={setUrgencyFilters}
@@ -799,7 +1052,7 @@
                         title="📦 Structure"
                         filters={[
                             { key: 'framework', label: 'Framework Agreements', count: stats.framework || 0 },
-                            { key: 'dps', label: 'Dynamic Purchasing System', count: 12 },
+                            { key: 'dps', label: 'Dynamic Purchasing', count: 12 },
                             { key: 'multilot', label: 'Multi-Lot', count: stats.multi_lot || 0 }
                         ]}
                         selected={structureFilters}
@@ -821,7 +1074,7 @@
                         title="⚠️ Requirements"
                         filters={[
                             { key: 'noSecurity', label: 'No Security Clearance', count: totalTenders - (stats.with_barriers || 0) },
-                            { key: 'noGuarantee', label: 'No Guarantee Required', count: 132 }
+                            { key: 'noGuarantee', label: 'No Guarantee Required', count: 81 }
                         ]}
                         selected={requirementFilters}
                         onChange={setRequirementFilters}
@@ -847,6 +1100,129 @@
                             <span className="filter-count">{filter.count}</span>
                         </div>
                     ))}
+                </div>
+            );
+        }
+
+        function ProfileModal({ profile, onSave, onClose }) {
+            const [formData, setFormData] = useState({
+                companyName: profile?.companyName || '',
+                companySize: profile?.companySize || 'SME',
+                countries: profile?.countries || [],
+                industries: profile?.industries || [],
+            });
+
+            const COUNTRIES = ['DNK', 'SWE', 'NOR', 'FIN', 'DEU', 'FRA', 'GBR', 'NLD'];
+            const INDUSTRIES = [
+                { code: '45', name: 'Construction' },
+                { code: '72', name: 'IT Services' },
+                { code: '79', name: 'Business Services' },
+                { code: '80', name: 'Education' },
+                { code: '85', name: 'Health' },
+                { code: '90', name: 'Environmental' },
+            ];
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSave(formData);
+            };
+
+            const toggleCountry = (country) => {
+                setFormData(prev => ({
+                    ...prev,
+                    countries: prev.countries.includes(country)
+                        ? prev.countries.filter(c => c !== country)
+                        : [...prev.countries, country]
+                }));
+            };
+
+            const toggleIndustry = (code) => {
+                setFormData(prev => ({
+                    ...prev,
+                    industries: prev.industries.includes(code)
+                        ? prev.industries.filter(c => c !== code)
+                        : [...prev.industries, code]
+                }));
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="modal-title">Set Up Your Profile</div>
+                            <div className="modal-subtitle">
+                                Help us personalize your tender search experience
+                            </div>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label className="form-label">Company Name</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.companyName}
+                                        onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                                        placeholder="Enter your company name"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Company Size</label>
+                                    <select
+                                        className="form-select"
+                                        value={formData.companySize}
+                                        onChange={(e) => setFormData({...formData, companySize: e.target.value})}
+                                    >
+                                        <option value="SME">SME (Small/Medium Enterprise)</option>
+                                        <option value="LARGE">Large Enterprise</option>
+                                        <option value="STARTUP">Startup</option>
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Target Countries</label>
+                                    <div className="form-checkgroup">
+                                        {COUNTRIES.map(country => (
+                                            <div
+                                                key={country}
+                                                className={`form-check-item ${formData.countries.includes(country) ? 'selected' : ''}`}
+                                                onClick={() => toggleCountry(country)}
+                                            >
+                                                {country}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Industries (CPV Codes)</label>
+                                    <div className="form-checkgroup">
+                                        {INDUSTRIES.map(industry => (
+                                            <div
+                                                key={industry.code}
+                                                className={`form-check-item ${formData.industries.includes(industry.code) ? 'selected' : ''}`}
+                                                onClick={() => toggleIndustry(industry.code)}
+                                            >
+                                                {industry.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={onClose}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    Save Profile
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             );
         }
@@ -917,6 +1293,8 @@
                 return `€${value.toLocaleString()}`;
             };
 
+            const needsReadMore = tender.description && tender.description.length > 250;
+
             return (
                 <div className="tender-card">
                     <div className="tender-header">
@@ -928,31 +1306,32 @@
 
                     <div className="tender-meta-row">
                         <div className="meta-item">
-                            <span className="meta-icon">🏛️</span>
+                            <span>🏛️</span>
                             {tender.buyer.name}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-icon">📍</span>
-                            {tender.buyer.city}, {tender.buyer.country}
+                            <span>📍</span>
+                            {tender.buyer.city && `${tender.buyer.city}, `}{tender.buyer.country}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-icon">💰</span>
+                            <span>💰</span>
                             {formatValue(tender.financial.value_eur)}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-icon">📅</span>
+                            <span>📅</span>
                             {formatDate(tender.dates.deadline_main)}
                         </div>
                         <div className="meta-item">
-                            <span className="meta-icon">🔢</span>
+                            <span>🔢</span>
                             CPV: {tender.classification.cpv_code}
                         </div>
                     </div>
 
-                    <div className="tender-description">
-                        {expanded ? tender.description : tender.description.substring(0, 200) + '...'}
+                    <div className={`tender-description ${!expanded && needsReadMore ? 'collapsed' : ''}`}>
+                        {tender.description}
                     </div>
-                    {tender.description.length > 200 && (
+                    
+                    {needsReadMore && (
                         <div className="read-more" onClick={() => setExpanded(!expanded)}>
                             {expanded ? 'Read less' : 'Read more'}
                         </div>
@@ -982,8 +1361,8 @@
                         >
                             📄 View on TED
                         </a>
-                        <button className="btn btn-icon" title="Save">⭐ Save</button>
-                        <button className="btn btn-icon" title="Alert">🔔 Alert</button>
+                        <button className="btn btn-icon" title="Save">⭐</button>
+                        <button className="btn btn-icon" title="Alert">🔔</button>
                     </div>
                 </div>
             );
