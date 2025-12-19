@@ -570,7 +570,7 @@
 
         .tender-description.collapsed {
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 5;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -1293,7 +1293,7 @@
                 return `€${value.toLocaleString()}`;
             };
 
-            const needsReadMore = tender.description && tender.description.length > 250;
+            const needsReadMore = tender.description && tender.description.length > 600;
 
             return (
                 <div className="tender-card">
@@ -1333,7 +1333,13 @@
                     
                     {needsReadMore && (
                         <div className="read-more" onClick={() => setExpanded(!expanded)}>
-                            {expanded ? 'Read less' : 'Read more'}
+                            {expanded ? '▲ Show less' : '▼ Read more'}
+                        </div>
+                    )}
+                    
+                    {!expanded && (
+                        <div style={{fontSize: '0.8rem', color: 'var(--gray-500)', marginTop: '0.5rem', fontStyle: 'italic'}}>
+                            💡 For complete tender details, specifications, and documents, click "View on TED" below
                         </div>
                     )}
 

@@ -29,6 +29,13 @@ TENDER_FIELDS = [
     "notice-title",                # Main title (multilingual)
     "title-lot",                   # Lot-specific title
     "description-lot",             # Lot description
+    "description-proc",            # Procedure description
+    "description-part",            # Part description  
+    "additional-information-lot",  # Additional lot information
+    "additional-info-proc",        # Additional procedure info
+    "contract-conditions-description-lot",  # Contract performance details
+    "strategic-procurement-description-lot",  # Strategic procurement details
+    "procedure-features",          # Main features of procedure
     
     # === DATES & DEADLINES (6 fields) ===
     "publication-date",            # When published
@@ -326,7 +333,52 @@ def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1, lot_ide
     pub_number = get_value(notice.get("publication-number"))
     notice_type = get_value(notice.get("notice-type"))
     title = get_value(notice.get("notice-title")) or get_value(notice.get("title-lot")) or "No title"
-    description = get_value(notice.get("description-lot")) or ""
+    
+    # === COMPREHENSIVE DESCRIPTION - Combine multiple sources ===
+    description_parts = []
+    
+    # 1. Main lot description
+    lot_desc = get_value(notice.get("description-lot"))
+    if lot_desc:
+        description_parts.append(lot_desc)
+    
+    # 2. Procedure description (often contains detailed scope)
+    proc_desc = get_value(notice.get("description-proc"))
+    if proc_desc and proc_desc != lot_desc:
+        description_parts.append(proc_desc)
+    
+    # 3. Part description
+    part_desc = get_value(notice.get("description-part"))
+    if part_desc and part_desc not in [lot_desc, proc_desc]:
+        description_parts.append(part_desc)
+    
+    # 4. Additional information
+    additional_info = get_value(notice.get("additional-information-lot"))
+    if additional_info:
+        description_parts.append(f"Additional Info: {additional_info}")
+    
+    # 5. Additional procedure info
+    additional_proc = get_value(notice.get("additional-info-proc"))
+    if additional_proc:
+        description_parts.append(f"Procedure Details: {additional_proc}")
+    
+    # 6. Contract conditions description
+    contract_cond = get_value(notice.get("contract-conditions-description-lot"))
+    if contract_cond:
+        description_parts.append(f"Contract Conditions: {contract_cond}")
+    
+    # 7. Strategic procurement details
+    strategic_desc = get_value(notice.get("strategic-procurement-description-lot"))
+    if strategic_desc:
+        description_parts.append(f"Strategic Procurement: {strategic_desc}")
+    
+    # 8. Procedure features (main characteristics)
+    proc_features = get_value(notice.get("procedure-features"))
+    if proc_features:
+        description_parts.append(f"Procedure Features: {proc_features}")
+    
+    # Combine all parts with separator
+    description = " || ".join(description_parts) if description_parts else "No description available"
     
     # === DATES ===
     pub_date = parse_date(notice.get("publication-date"))
