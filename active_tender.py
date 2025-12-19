@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 TED API Tender Fetcher - FIXED Multi-Lot Detection
-Version: 6.0 - Proper LOT-XXXX Based Multi-Lot Detection
+Version: 7.0 - identifier-lot ARRAY Based Multi-Lot Detection
 """
 
 import requests
@@ -235,6 +235,89 @@ def parse_boolean(value: Any) -> bool:
 # TED API
 # =============================================================================
 
+def extract_lot_count_from_text(notice: Dict) -> Optional[int]:
+    """
+    Try to extract lot count from description/title text.
+    
+    Common patterns:
+    - "divided into 5 lots"
+    - "de fem kategorier" (Danish: the five categories)  
+    - "LOT-0001, LOT-0002, LOT-0003..." in text
+    - "Lot 1:..., Lot 2:..., Lot 3:..."
+    """
+    import re
+    
+    # Get all text fields
+    texts = []
+    for field in ["description-lot", "description-proc", "procedure-features", "title-lot", "notice-title"]:
+        value = notice.get(field)
+        if value:
+            text = get_value(value)
+            if text:
+                texts.append(text.lower())
+    
+    full_text = " ".join(texts)
+    
+    # Pattern 1: "divided into X lots"  / "opdelt i X delaftaler"
+    patterns = [
+        r'divided into (\d+) lots',
+        r'(\d+) separate lots',
+        r'opdelt i (\d+) delaftaler',
+        r'(\d+) delaftaler',
+        r'de (\w+) kategorier',  # Danish: "the X categories"
+    ]
+    
+    # Danish number words
+    danish_numbers = {
+        'to': 2, 'tre': 3, 'fire': 4, 'fem': 5, 'seks': 6, 
+        'syv': 7, 'otte': 8, 'ni': 9, 'ti': 10
+    }
+    
+    for pattern in patterns:
+        match = re.search(pattern, full_text)
+        if match:
+            num_str = match.group(1)
+            # Try numeric
+            if num_str.isdigit():
+                return int(num_str)
+            # Try Danish word
+            if num_str in danish_numbers:
+                return danish_numbers[num_str]
+    
+    # Pattern 2: Count "LOT-" mentions
+    lot_mentions = re.findall(r'LOT-(\d+)', full_text.upper())
+    if len(lot_mentions) > 1:
+        # Get highest lot number
+        try:
+            return max(int(n) for n in lot_mentions if int(n) > 0)
+        except:
+            pass
+    
+    return None
+
+
+def fetch_notice_details(notice_id: str) -> Optional[Dict]:
+    """
+    Fetch full notice details including ALL lots.
+    
+    The TED API has a separate endpoint for fetching individual notices
+    which returns complete data for all lots.
+    """
+    url = f"https://api.ted.europa.eu/v3/notices/{notice_id}"
+    
+    try:
+        response = requests.get(
+            url,
+            timeout=REQUEST_TIMEOUT,
+            headers={"Accept": "application/json"}
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"[!] Failed to fetch notice {notice_id[:8]}...: {e}")
+        return None
+
+
 def fetch_tenders_page(query: str, page: int = 1) -> Dict[str, Any]:
     """Fetch one page from TED API."""
     payload = {
@@ -244,7 +327,8 @@ def fetch_tenders_page(query: str, page: int = 1) -> Dict[str, Any]:
         "limit": 100,
         "scope": "ACTIVE",
         "paginationMode": "PAGE_NUMBER",
-        "onlyLatestVersions": True,
+        # Remove onlyLatestVersions to potentially get all lots
+        # "onlyLatestVersions": True,
     }
     
     try:
@@ -257,7 +341,7 @@ def fetch_tenders_page(query: str, page: int = 1) -> Dict[str, Any]:
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"❌ API Error: {e}")
+        print(f"[X] API Error: {e}")
         if hasattr(e, 'response') and e.response:
             error_text = e.response.text[:1000]
             print(f"   Response: {error_text}")
@@ -266,7 +350,7 @@ def fetch_tenders_page(query: str, page: int = 1) -> Dict[str, Any]:
 
 def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
     """Fetch ALL tenders with proper pagination."""
-    print(f"\n🔍 Fetching tenders from TED API...")
+    print(f"\n[*] Fetching tenders from TED API...")
     print(f"   Countries: {', '.join(countries)}")
     print(f"   Published in last {days} days")
     print(f"   Fields requested: {len(TENDER_FIELDS)}")
@@ -294,7 +378,7 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
         result = fetch_tenders_page(query, page)
         
         if not result:
-            print("❌ Failed")
+            print("[X] Failed")
             break
         
         notices = result.get("notices", [])
@@ -302,9 +386,9 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
         
         if page == 1:
             total = hits
-            print(f"✅ Total: {total} tender lots from API")
+            print(f"[+] Total: {total} tender lots from API")
         else:
-            print(f"✅ Got {len(notices)}")
+            print(f"[+] Got {len(notices)}")
         
         if not notices:
             break
@@ -312,7 +396,7 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
         all_notices.extend(notices)
         
         if len(all_notices) >= total or len(notices) < 100:
-            print(f"\n✅ Complete: Fetched {len(all_notices)} lot records")
+            print(f"\n[+] Complete: Fetched {len(all_notices)} lot records")
             break
         
         page += 1
@@ -714,38 +798,41 @@ def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1, lot_ide
 
 def detect_and_process_multilot(notices: List[Dict]) -> List[Dict]:
     """
-    FIXED: Detect multi-lot tenders using LOT-XXXX identifiers.
+    FIXED: Detect multi-lot tenders using identifier-lot array.
     
-    Multi-lot detection logic (based on TED eForms documentation):
-    
-    KEY INSIGHT:
+    Multi-lot detection logic:
+    - identifier-lot is an ARRAY of LOT identifiers per notice
+    - If identifier-lot has multiple items (LOT-0001, LOT-0002, etc.) = multi-lot
+    - Count the unique LOT-XXXX values (excluding LOT-0000)
     - LOT-0000 = Single contract (no subdivisions)
-    - LOT-0001 = FIRST LOT of a multi-lot tender (by definition)
-    - LOT-0002 = SECOND LOT of same tender
-    - LOT-NNNN = Nth LOT of same tender
+    - LOT-0001, LOT-0002, etc. = Multi-lot tender
     
-    IMPORTANT: Even if API returns only ONE record with LOT-0001, it's STILL
-    a multi-lot tender. The LOT-XXXX numbering itself indicates subdivision.
-    
-    Detection Algorithm:
-    1. Group notices by notice_identifier (same UUID = same tender)
-    2. Extract all LOT-XXXX identifiers
-    3. If ANY identifier is LOT-0001 or higher → multi-lot
-    4. If all identifiers are LOT-0000 → single contract
-    5. Store lot count (either actual count or inferred from LOT-NNNN)
+    Example from API:
+    "identifier-lot": ["LOT-0001", "LOT-0002", "LOT-0003", "LOT-0004"] = 4 lots
+    "identifier-lot": ["LOT-0000"] = 1 lot (single contract)
     """
-    print(f"\n🔄 Processing multi-lot tenders (FIXED DETECTION)...")
+    print(f"\n🔄 Processing multi-lot tenders (IDENTIFIER-LOT ARRAY DETECTION)...")
     print(f"   Total lot records from API: {len(notices)}")
     
     # Group by notice identifier
     notice_groups = defaultdict(list)
     for notice in notices:
         notice_id = notice.get("notice-identifier")
-        lot_id = get_value(notice.get("identifier-lot"))
+        
+        # Get identifier-lot - it's an ARRAY
+        lot_ids_raw = notice.get("identifier-lot")
+        
+        # Ensure it's a list
+        if lot_ids_raw:
+            if not isinstance(lot_ids_raw, list):
+                lot_ids_raw = [lot_ids_raw]
+        else:
+            lot_ids_raw = []
+        
         if notice_id:
             notice_groups[notice_id].append({
                 "notice": notice,
-                "lot_id": lot_id
+                "lot_ids": lot_ids_raw  # Store the FULL array
             })
     
     print(f"   Unique tenders (by notice_identifier): {len(notice_groups)}")
@@ -758,69 +845,91 @@ def detect_and_process_multilot(notices: List[Dict]) -> List[Dict]:
     parsed_tenders = []
     
     for notice_id, lot_data in notice_groups.items():
-        total_lots = len(lot_data)
-        lot_identifiers = [ld["lot_id"] for ld in lot_data if ld["lot_id"]]
+        # Get the first notice's identifier-lot array
+        first_notice = lot_data[0]["notice"]
+        lot_ids_raw = first_notice.get("identifier-lot", [])
         
-        # FIXED: Proper multi-lot detection based on LOT-XXXX pattern
-        # LOT-0000 = single contract (even if multiple records returned)
-        # LOT-0001+ = ALWAYS multi-lot (even if we only got 1 record from API)
-        unique_non_zero_lots = set([lid for lid in lot_identifiers if lid and lid != "LOT-0000"])
+        # Ensure it's a list
+        if not isinstance(lot_ids_raw, list):
+            lot_ids_raw = [lot_ids_raw] if lot_ids_raw else []
         
-        # Determine if truly multi-lot
-        if not unique_non_zero_lots:
-            # All LOT-0000 or no lot IDs = single
+        # Clean up lot identifiers - remove None, empty strings, and LOT-0000
+        lot_identifiers = [lid for lid in lot_ids_raw if lid and lid != "LOT-0000"]
+        
+        # Count unique lots
+        unique_lots = set(lot_identifiers)
+        display_total_lots = len(unique_lots)
+        
+        # Determine if multi-lot
+        if display_total_lots == 0:
+            # No valid lot IDs or all LOT-0000 = single contract
             is_multi_lot = False
             display_total_lots = 1
             single_lot_count += 1
             lot_pattern_stats["LOT-0000 (single)"] += 1
+        elif display_total_lots == 1:
+            # Single LOT-0001 or similar = could be multi-lot but only one returned
+            # Check if we can extract more info from description
+            text_lot_count = extract_lot_count_from_text(first_notice)
+            
+            if text_lot_count and text_lot_count > 1:
+                is_multi_lot = True
+                display_total_lots = text_lot_count
+                multi_lot_count += 1
+                print(f"   [+] Notice {notice_id[:8]}...: Found {display_total_lots} lots from text")
+                lot_pattern_stats[f"Single LOT ID, {display_total_lots} lots (from text)"] += 1
+            else:
+                # Treat as single
+                is_multi_lot = False
+                display_total_lots = 1
+                single_lot_count += 1
+                lot_pattern_stats["Single LOT-XXXX (treated as single)"] += 1
         else:
-            # ANY LOT-0001+ identifier = multi-lot tender
-            # (Per TED eForms: LOT-0001 means "first lot of multiple lots")
+            # Multiple unique LOT-XXXX identifiers = definitely multi-lot
             is_multi_lot = True
-            
-            # If we have multiple records, count them
-            if len(unique_non_zero_lots) > 1:
-                display_total_lots = len(unique_non_zero_lots)
-            else:
-                # Single LOT-0001 record = we don't know total, but it's multi-lot
-                # Extract lot number from identifier (LOT-0001 → 1, LOT-0035 → 35)
-                first_lot_id = list(unique_non_zero_lots)[0]
-                try:
-                    lot_num = int(first_lot_id.split('-')[1])
-                    display_total_lots = lot_num  # Assume at least this many lots
-                except:
-                    display_total_lots = 2  # Default: at least 2 lots
-            
             multi_lot_count += 1
-            if len(unique_non_zero_lots) > 1:
-                lot_pattern_stats[f"LOT-0001..LOT-{str(display_total_lots).zfill(4)} (multi)"] += 1
-            else:
-                lot_pattern_stats[f"{list(unique_non_zero_lots)[0]} (multi-partial)"] += 1
+            print(f"   [+] Notice {notice_id[:8]}...: {display_total_lots} lots from identifier-lot array: {sorted(unique_lots)}")
+            lot_pattern_stats[f"{display_total_lots} lots (from array)"] += 1
         
-        # Parse first lot (or only lot)
-        first_lot_data = lot_data[0]
+        # Parse the tender
         tender = parse_tender(
-            first_lot_data["notice"],
+            first_notice,
             lot_number=1,
             total_lots=display_total_lots,
-            lot_identifiers=lot_identifiers
+            lot_identifiers=list(unique_lots)
         )
         
-        # Override is_multi_lot with corrected value
+        # Set multi-lot properties
         tender["strategic"]["is_multi_lot"] = is_multi_lot
         tender["strategic"]["total_lots"] = display_total_lots
         
         # Add multi-lot metadata if applicable
-        if is_multi_lot:
-            tender["strategic"]["lot_identifiers"] = sorted(unique_non_zero_lots)
-            tender["strategic"]["lot_titles"] = [
-                get_value(ld["notice"].get("title-lot")) or f"Lot {i+1}"
-                for i, ld in enumerate(lot_data)
-            ]
+        if is_multi_lot and len(unique_lots) > 0:
+            tender["strategic"]["lot_identifiers"] = sorted(unique_lots)
+            
+            # Try to get lot titles from title-lot field
+            lot_titles_raw = first_notice.get("title-lot")
+            if lot_titles_raw:
+                if isinstance(lot_titles_raw, dict):
+                    # Get from language (prefer eng, fallback to first available)
+                    lot_titles = get_value(lot_titles_raw)
+                    if isinstance(lot_titles, list):
+                        tender["strategic"]["lot_titles"] = lot_titles
+                    else:
+                        tender["strategic"]["lot_titles"] = [lot_titles] if lot_titles else []
+                elif isinstance(lot_titles_raw, list):
+                    tender["strategic"]["lot_titles"] = [get_value(title) for title in lot_titles_raw]
+            
+            # Store lot descriptions if available
+            lot_descriptions_raw = first_notice.get("description-lot")
+            if lot_descriptions_raw and isinstance(lot_descriptions_raw, (dict, list)):
+                lot_descriptions = get_value(lot_descriptions_raw)
+                if isinstance(lot_descriptions, list):
+                    tender["strategic"]["lot_descriptions"] = lot_descriptions[:display_total_lots]
         
         parsed_tenders.append(tender)
     
-    print(f"\n📊 Multi-Lot Detection Results:")
+    print(f"\n[*] Multi-Lot Detection Results:")
     print(f"   Single-lot tenders: {single_lot_count}")
     print(f"   Multi-lot tenders: {multi_lot_count}")
     print(f"   Total unique tenders: {len(parsed_tenders)}")
@@ -839,13 +948,14 @@ def detect_and_process_multilot(notices: List[Dict]) -> List[Dict]:
 
 def main():
     print("\n" + "="*80)
-    print("🇪🇺 TED API TENDER FETCHER - FIXED MULTI-LOT DETECTION")
+    print("=== TED API TENDER FETCHER - FIXED MULTI-LOT DETECTION ===")
     print("="*80)
-    print("\nVersion 6.0 - Proper LOT-XXXX Based Multi-Lot Detection")
+    print("\nVersion 7.0 - identifier-lot ARRAY Based Multi-Lot Detection")
     print(f"Fields: {len(TENDER_FIELDS)} comprehensive fields")
-    print("\nFix: Multi-lot detection now based on LOT-XXXX identifiers")
-    print("     LOT-0000 = Single contract")
-    print("     LOT-0001, LOT-0002, etc. = Multi-lot tender")
+    print("\nFix: Multi-lot detection now based on identifier-lot ARRAY")
+    print("     identifier-lot: [LOT-0000] = Single contract")
+    print("     identifier-lot: [LOT-0001, LOT-0002, ...] = Multi-lot tender")
+    print("     Counts unique LOT-XXXX values from the array")
     
     # Configuration
     COUNTRIES = ["DNK"]  # Denmark
@@ -856,7 +966,7 @@ def main():
     notices = fetch_all_tenders(COUNTRIES, DAYS)
     
     if not notices:
-        print("\n⚠️  No tenders found")
+        print("\n[!] No tenders found")
         return
     
     # Process multi-lot tenders with FIXED detection
@@ -875,7 +985,7 @@ def main():
     tenders = active_tenders
     
     # Calculate statistics - FIXED TO COUNT CORRECTLY
-    print(f"\n📊 Calculating statistics...")
+    print(f"\n[*] Calculating statistics...")
     
     urgency_stats = defaultdict(int)
     value_stats = defaultdict(int)
@@ -940,11 +1050,11 @@ def main():
         "tenders": tenders
     }
     
-    print(f"\n💾 Saving to {OUTPUT}...")
+    print(f"\n[*] Saving to {OUTPUT}...")
     with open(OUTPUT, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
     
-    print(f"\n✅ SUCCESS!")
+    print(f"\n[+] SUCCESS!")
     print(f"   File: {OUTPUT}")
     print(f"   Size: {len(json.dumps(output_data))} bytes")
     print(f"   Tenders: {len(tenders)}")
