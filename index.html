@@ -655,6 +655,152 @@
             color: var(--gray-600);
         }
 
+        /* eForms Structured Notice Display */
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .view-toggle-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-300);
+            background: white;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-toggle-btn:hover {
+            border-color: var(--primary-light);
+        }
+
+        .view-toggle-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .eforms-notice {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .eforms-header {
+            border-bottom: 2px solid var(--gray-200);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .eforms-pub-number {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .eforms-metadata {
+            font-size: 0.9375rem;
+            color: var(--gray-700);
+            margin-bottom: 0.25rem;
+        }
+
+        .eforms-dates {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+        }
+
+        .eforms-section {
+            margin-bottom: 2rem;
+            padding: 1.25rem;
+            background: var(--gray-50);
+            border-radius: 10px;
+        }
+
+        .eforms-section-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-number {
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .eforms-subsection {
+            margin-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .eforms-subsection h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 0.75rem;
+        }
+
+        .eforms-field {
+            margin-bottom: 0.75rem;
+            padding: 0.625rem;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .eforms-field-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.25rem;
+        }
+
+        .eforms-field-value {
+            font-size: 0.9375rem;
+            color: var(--gray-600);
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .eforms-field-value a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .eforms-field-value a:hover {
+            text-decoration: underline;
+        }
+
+        .eforms-lot {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--warning);
+        }
+
+        .eforms-lot h5 {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .eforms-lot h5::before {
+            content: '📦';
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .sidebar {
@@ -709,7 +855,8 @@
                             urgency: tender.dates?.urgency_level,
                             framework_agreement: tender.strategic?.is_framework,
                             sme_suitable: tender.strategic?.is_sme_accessible,
-                            category: tender.classification?.contract_nature
+                            category: tender.classification?.contract_nature,
+                            eforms_notice: tender.eforms_notice  // NEW: eForms structured data
                         }));
                         setTenders(tendersArray);
                         setLoading(false);
@@ -949,6 +1096,7 @@
         function TenderCard({ tender, language }) {
             const [expanded, setExpanded] = useState(false);
             const [showLotDetails, setShowLotDetails] = useState(false);
+            const [showEForms, setShowEForms] = useState(false);
 
             const formatDate = (dateStr) => {
                 if (!dateStr) return 'Not specified';
@@ -986,6 +1134,19 @@
             const lotIdentifiers = tender.strategic?.lot_identifiers || [];
             const lotTitles = tender.strategic?.lot_titles || [];
             const lotDescriptions = tender.strategic?.lot_descriptions || [];
+            
+            // Get eForms data
+            const eforms = tender.eforms_notice;
+            const hasEForms = eforms && Object.keys(eforms).length > 0;
+            
+            // Debug logging for multi-lot tenders
+            if (isMultiLot && lotIdentifiers.length > 2) {
+                console.log(`Multi-lot tender: ${tender.title.substring(0, 40)}...`);
+                console.log(`  Lot IDs: ${lotIdentifiers.length}`, lotIdentifiers);
+                console.log(`  Lot Titles: ${lotTitles.length}`, lotTitles);
+                console.log(`  Lot Descriptions: ${lotDescriptions.length}`);
+                console.log(`  eForms lots: ${eforms?.object?.lots?.length || 0}`);
+            }
 
             return (
                 <div className="tender-card">
@@ -1025,47 +1186,73 @@
                         </div>
                     )}
 
-                    <div className={`tender-description ${expanded ? 'expanded' : ''}`}>
-                        {displayedDescription}
-                    </div>
-
-                    {needsReadMore && (
-                        <div className="read-more" onClick={() => setExpanded(!expanded)}>
-                            {expanded ? '▲ Show less' : '▼ Read more'}
+                    {/* View Toggle */}
+                    {hasEForms && (
+                        <div className="view-toggle">
+                            <button
+                                className={`view-toggle-btn ${!showEForms ? 'active' : ''}`}
+                                onClick={() => setShowEForms(false)}
+                            >
+                                📝 Summary View
+                            </button>
+                            <button
+                                className={`view-toggle-btn ${showEForms ? 'active' : ''}`}
+                                onClick={() => setShowEForms(true)}
+                            >
+                                📋 Official Notice (eForms)
+                            </button>
                         </div>
                     )}
 
-                    {/* LOT DETAILS SECTION */}
-                    {isMultiLot && lotIdentifiers.length > 0 && (
-                        <div className="lot-details">
-                            <div className="lot-details-header" onClick={() => setShowLotDetails(!showLotDetails)}>
-                                <span>📋 Lot Breakdown ({tender.lot_count} Lots)</span>
-                                <span className="lot-details-toggle">
-                                    {showLotDetails ? '▲ Hide' : '▼ View All Lots'}
-                                </span>
+                    {/* eForms Structured View */}
+                    {showEForms && hasEForms ? (
+                        <EFormsNoticeView eforms={eforms} tender={tender} formatDate={formatDate} formatValue={formatValue} />
+                    ) : (
+                        /* Original Summary View */
+                        <>
+                            <div className={`tender-description ${expanded ? 'expanded' : ''}`}>
+                                {displayedDescription}
                             </div>
-                            
-                            {showLotDetails && (
-                                <div className="lot-items">
-                                    {lotIdentifiers.map((lotId, index) => (
-                                        <div key={lotId} className="lot-item">
-                                            <div className="lot-item-header">
-                                                <span className="lot-item-id">{lotId}</span>
-                                                <span className="lot-item-title">
-                                                    {lotTitles[index] || `Lot ${index + 1}`}
-                                                </span>
-                                            </div>
-                                            {lotDescriptions[index] && (
-                                                <div className="lot-item-description">
-                                                    {lotDescriptions[index].substring(0, 200)}
-                                                    {lotDescriptions[index].length > 200 ? '...' : ''}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+
+                            {needsReadMore && (
+                                <div className="read-more" onClick={() => setExpanded(!expanded)}>
+                                    {expanded ? '▲ Show less' : '▼ Read more'}
                                 </div>
                             )}
-                        </div>
+
+                            {/* LOT DETAILS SECTION */}
+                            {isMultiLot && lotIdentifiers.length > 0 && (
+                                <div className="lot-details">
+                                    <div className="lot-details-header" onClick={() => setShowLotDetails(!showLotDetails)}>
+                                        <span>📋 Lot Breakdown ({tender.lot_count} Lots)</span>
+                                        <span className="lot-details-toggle">
+                                            {showLotDetails ? '▲ Hide' : '▼ View All Lots'}
+                                        </span>
+                                    </div>
+                                    
+                                    {showLotDetails && (
+                                        <div className="lot-items">
+                                            {lotIdentifiers.map((lotId, index) => (
+                                                <div key={lotId} className="lot-item">
+                                                    <div className="lot-item-header">
+                                                        <span className="lot-item-id">{lotId}</span>
+                                                        <span className="lot-item-title">
+                                                            {lotTitles[index] || `Lot ${index + 1}`}
+                                                        </span>
+                                                    </div>
+                                                    {lotDescriptions[index] && (
+                                                        <div className="lot-item-description">
+                                                            {lotDescriptions[index].substring(0, 200)}
+                                                            {lotDescriptions[index].length > 200 ? '...' : ''}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {tender.urls?.ted_notice_url && (
@@ -1117,6 +1304,221 @@
                     </div>
                 </div>
             );
+        }
+
+        // EForms Notice View Component - Based on eForms SDK Standard
+        function EFormsNoticeView({ eforms, tender, formatDate, formatValue }) {
+            try {
+                if (!eforms) {
+                    console.log('EFormsNoticeView: No eforms data');
+                    return <div className="eforms-notice">No eForms data available</div>;
+                }
+
+                // Debug logging
+                const lots = eforms?.object?.lots || [];
+                console.log('EFormsNoticeView rendering:', {
+                    hasEforms: !!eforms,
+                    hasObject: !!eforms.object,
+                    lotsCount: lots.length,
+                    lots: lots.map(l => ({ id: l?.lot_identifier, title: l?.title }))
+                });
+
+                const Field = ({ label, value }) => {
+                    if (!value) return null;
+                    return (
+                        <div className="eforms-field">
+                            <div className="eforms-field-label">{label}:</div>
+                            <div className="eforms-field-value">{value}</div>
+                        </div>
+                    );
+                };
+
+                const BooleanField = ({ label, value }) => {
+                    if (value === null || value === undefined) return null;
+                    return (
+                        <div className="eforms-field">
+                            <div className="eforms-field-label">{label}:</div>
+                            <div className="eforms-field-value">{value ? 'Yes' : 'No'}</div>
+                        </div>
+                    );
+                };
+
+            return (
+                <div className="eforms-notice">
+                    {/* Header */}
+                    <div className="eforms-header">
+                        <div className="eforms-pub-number">
+                            {eforms.notice_information?.publication_number || 'N/A'} - Competition
+                        </div>
+                        <div className="eforms-metadata">
+                            {eforms.buyer?.identification?.postal_address?.country || 'N/A'} – {tender.category || 'Services'} – {tender.title}
+                        </div>
+                        <div className="eforms-dates">
+                            Publication: {formatDate(eforms.notice_information?.publication_date)}
+                        </div>
+                    </div>
+
+                    {/* COMPONENT 1: NOTICE INFORMATION */}
+                    <section className="eforms-section">
+                        <h3 className="eforms-section-title">
+                            <span className="section-number">1.</span> Notice Information
+                        </h3>
+                        <div className="eforms-subsection">
+                            <Field label="Notice Type" value={eforms.notice_information?.notice_type} />
+                            <Field label="Procedure Type" value={eforms.notice_information?.procedure_type} />
+                            <Field label="Procedure Identifier" value={eforms.notice_information?.procedure_identifier} />
+                            <Field label="Legal Basis" value={eforms.notice_information?.legal_basis} />
+                        </div>
+                    </section>
+
+                    {/* COMPONENT 2: BUYER */}
+                    <section className="eforms-section">
+                        <h3 className="eforms-section-title">
+                            <span className="section-number">2.</span> Buyer
+                        </h3>
+                        <div className="eforms-subsection">
+                            <h4>2.1. Buyer</h4>
+                            <Field label="Official name" value={eforms.buyer?.identification?.official_name} />
+                            {eforms.buyer?.identification?.contact_details?.email && (
+                                <div className="eforms-field">
+                                    <div className="eforms-field-label">Email:</div>
+                                    <div className="eforms-field-value">
+                                        <a href={`mailto:${eforms.buyer.identification.contact_details.email}`}>
+                                            {eforms.buyer.identification.contact_details.email}
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                            <Field label="Internet address" value={eforms.buyer?.identification?.contact_details?.internet_address} />
+                            <Field label="Legal type of the buyer" value={eforms.buyer?.ca_ce_type} />
+                            <Field label="Main activity" value={eforms.buyer?.main_activity} />
+                        </div>
+                    </section>
+
+                    {/* COMPONENT 3: OBJECT */}
+                    <section className="eforms-section">
+                        <h3 className="eforms-section-title">
+                            <span className="section-number">3.</span> Object
+                        </h3>
+                        <div className="eforms-subsection">
+                            <h4>3.1. Procurement Scope</h4>
+                            <Field label="Title" value={eforms.object?.procurement_scope?.title} />
+                            <Field label="Short description" value={eforms.object?.procurement_scope?.short_description} />
+                            <Field label="Main CPV" value={eforms.object?.procurement_scope?.main_cpv} />
+                            <Field label="Contract nature" value={eforms.object?.procurement_scope?.contract_nature} />
+                            {eforms.object?.procurement_scope?.estimated_value && (
+                                <Field label="Estimated value" 
+                                       value={formatValue(eforms.object.procurement_scope.estimated_value, eforms.object.procurement_scope.currency)} />
+                            )}
+                            {eforms.object?.procurement_scope?.lots_info?.has_lots && (
+                                <Field label="Number of lots" value={eforms.object.procurement_scope.lots_info.number_of_lots} />
+                            )}
+                        </div>
+
+                        {/* 3.2 Lots */}
+                        {eforms.object?.lots && Array.isArray(eforms.object.lots) && eforms.object.lots.length > 0 && (
+                            <div className="eforms-subsection">
+                                <h4>3.2. Lot/Part Description</h4>
+                                {eforms.object.lots.map((lot, idx) => {
+                                    // Format duration object to string
+                                    const formatDuration = (duration) => {
+                                        if (!duration) return null;
+                                        if (typeof duration === 'string') return duration;
+                                        if (typeof duration === 'object' && duration.value && duration.unit) {
+                                            return `${duration.value} ${duration.unit.toLowerCase()}`;
+                                        }
+                                        return null;
+                                    };
+                                    
+                                    return (
+                                        <div key={lot.lot_identifier || idx} className="eforms-lot">
+                                            <h5>{lot.lot_identifier || `Lot ${idx + 1}`}: {lot.title || 'Untitled'}</h5>
+                                            {lot.description && <Field label="Description" value={lot.description} />}
+                                            {lot.main_cpv && <Field label="Main CPV" value={lot.main_cpv} />}
+                                            {(lot.place_of_performance?.city || lot.place_of_performance?.country) && (
+                                                <Field label="Place of performance" 
+                                                       value={[lot.place_of_performance?.city, lot.place_of_performance?.country].filter(Boolean).join(', ')} />
+                                            )}
+                                            {lot.estimated_value && (
+                                                <Field label="Estimated value" value={formatValue(lot.estimated_value, eforms.object?.procurement_scope?.currency)} />
+                                            )}
+                                            {lot.deadline_receipt_tenders && (
+                                                <Field label="Deadline for receipt of tenders" value={formatDate(lot.deadline_receipt_tenders)} />
+                                            )}
+                                            {lot.duration && <Field label="Duration" value={formatDuration(lot.duration)} />}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </section>
+
+                    {/* COMPONENT 4: SELECTION CRITERIA */}
+                    <section className="eforms-section">
+                        <h3 className="eforms-section-title">
+                            <span className="section-number">4.</span> Selection Criteria
+                        </h3>
+                        <div className="eforms-subsection">
+                            <h4>4.1. Conditions for Participation</h4>
+                            <BooleanField label="Reserved procurement" value={eforms.selection_criteria?.conditions_for_participation?.reserved_procurement} />
+                            <BooleanField label="Security clearance required" value={eforms.selection_criteria?.conditions_for_participation?.security_clearance_required} />
+                        </div>
+                        {eforms.selection_criteria?.contract_conditions?.contract_performance && (
+                            <div className="eforms-subsection">
+                                <h4>4.2. Contract Conditions</h4>
+                                <Field label="Contract performance conditions" value={eforms.selection_criteria.contract_conditions.contract_performance} />
+                            </div>
+                        )}
+                    </section>
+
+                    {/* COMPONENT 5: PROCEDURE */}
+                    <section className="eforms-section">
+                        <h3 className="eforms-section-title">
+                            <span className="section-number">5.</span> Procedure
+                        </h3>
+                        <div className="eforms-subsection">
+                            <h4>5.1. Description</h4>
+                            <Field label="Procedure type" value={eforms.procedure?.description?.procedure_type} />
+                            <Field label="Main features of the procedure" value={eforms.procedure?.description?.main_features} />
+                            <BooleanField label="Framework agreement" value={eforms.procedure?.description?.framework_agreement} />
+                            <BooleanField label="Dynamic Purchasing System" value={eforms.procedure?.description?.dps_usage} />
+                            <BooleanField label="Electronic auction" value={eforms.procedure?.description?.electronic_auction} />
+                            <BooleanField label="GPA covered" value={eforms.procedure?.description?.gpa_covered} />
+                        </div>
+                        <div className="eforms-subsection">
+                            <h4>5.2. Administrative Information</h4>
+                            <Field label="Deadline for receipt of tenders" value={formatDate(eforms.procedure?.administrative_information?.deadline_receipt_tenders)} />
+                            <Field label="Deadline for receipt of requests to participate" value={formatDate(eforms.procedure?.administrative_information?.deadline_receipt_requests)} />
+                            <Field label="Languages in which tenders can be submitted" value={eforms.procedure?.administrative_information?.submission_language} />
+                            <BooleanField label="Electronic submission required" value={eforms.procedure?.administrative_information?.electronic_submission} />
+                        </div>
+                    </section>
+
+                    {/* COMPONENT 6: FURTHER INFORMATION */}
+                    <section className="eforms-section">
+                        <h3 className="eforms-section-title">
+                            <span className="section-number">6.</span> Further Information
+                        </h3>
+                        <div className="eforms-subsection">
+                            <BooleanField label="Recurring procurement" value={eforms.further_information?.recurring_procurement} />
+                            <Field label="Additional information (Procedure)" value={eforms.further_information?.additional_information?.additional_info_proc} />
+                            <Field label="Additional information (Lot)" value={eforms.further_information?.additional_information?.additional_info_lot} />
+                        </div>
+                    </section>
+                </div>
+            );
+            } catch (error) {
+                console.error('EFormsNoticeView error:', error);
+                return (
+                    <div className="eforms-notice">
+                        <div style={{ padding: '2rem', background: '#fff3cd', borderRadius: '8px' }}>
+                            <h3 style={{ color: '#856404', marginBottom: '1rem' }}>⚠️ Unable to display eForms view</h3>
+                            <p style={{ color: '#856404' }}>Error: {error.message}</p>
+                            <p style={{ marginTop: '1rem', color: '#666' }}>Please check the browser console for details or try the Summary View.</p>
+                        </div>
+                    </div>
+                );
+            }
         }
 
         ReactDOM.render(<App />, document.getElementById('root'));

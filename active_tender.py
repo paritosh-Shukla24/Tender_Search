@@ -373,7 +373,7 @@ def fetch_all_tenders(countries: List[str], days: int) -> List[Dict]:
     max_pages = 50
     
     while page <= max_pages:
-        print(f"📄 Page {page}...", end=" ", flush=True)
+        print(f"[Page {page}]...", end=" ", flush=True)
         
         result = fetch_tenders_page(query, page)
         
@@ -463,6 +463,66 @@ def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1, lot_ide
     
     # Combine all parts with separator
     description = " || ".join(description_parts) if description_parts else "No description available"
+    
+    # === HELPER FUNCTION: to_list - Extract ALL items from language dict arrays ===
+    # This function is defined here so it can be used in multiple places
+    def to_list(data):
+        """Extract list of values from TED API data structure."""
+        if not data:
+            return []
+        
+        # If it's already a list (not wrapped in language dict), return it
+        if isinstance(data, list):
+            return data
+        
+        # If it's a multilingual dict, extract the array from the language key
+        if isinstance(data, dict):
+            # Priority language order
+            for lang in ['eng', 'dan', 'deu', 'swe', 'nor', 'fra', 'spa', 'ita']:
+                if lang in data:
+                    value = data[lang]
+                    if isinstance(value, list):
+                        return value  # Return the FULL list
+                    return [value] if value else []
+            
+            # Fallback to first available value
+            if data:
+                first_value = next(iter(data.values()), None)
+                if isinstance(first_value, list):
+                    return first_value  # Return the FULL list
+                return [first_value] if first_value else []
+        
+        # Single value - wrap in list
+        return [data]
+    
+    # === HELPER FUNCTION: get_ordered_lot_data - Extract lot data in correct order ===
+    def get_ordered_lot_data(lots_array, lot_identifiers, field_name):
+        """Extract lot data (title/description) in the same order as lot_identifiers."""
+        if not lots_array or not lot_identifiers:
+            return []
+        
+        # Create a mapping of lot_identifier -> field value
+        lot_map = {}
+        for lot in lots_array:
+            lot_id = lot.get("lot_identifier")
+            field_value = lot.get(field_name)
+            if lot_id:
+                lot_map[lot_id] = field_value
+        
+        # Return values in the order of lot_identifiers
+        result = []
+        for lot_id in lot_identifiers:
+            value = lot_map.get(lot_id)
+            if value:
+                result.append(value)
+            else:
+                # Fallback to generic name if not found
+                idx = lot_identifiers.index(lot_id) + 1
+                fallback = f"Lot {idx}" if field_name == "title" else None
+                if fallback:
+                    result.append(fallback)
+        
+        return result
     
     # === DATES ===
     pub_date = parse_date(notice.get("publication-date"))
@@ -674,12 +734,174 @@ def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1, lot_ide
     if perf_country and buyer_country and perf_country != buyer_country:
         is_cross_border = True
     
-    return {
+    # === BUILD EFORMS STRUCTURED NOTICE - Based on eForms SDK Documentation ===
+    # Following the official eForms notice content structure (7 major components)
+    # This is created AFTER all variables are defined to avoid UnboundLocalError
+    
+    eforms_notice = {
+        # COMPONENT 1: NOTICE INFORMATION (Red box in Figure 1)
+        "notice_information": {
+            "publication_number": pub_number,
+            "notice_identifier": notice_id,
+            "notice_type": notice_type,
+            "form_type": get_value(notice.get("form-type")),
+            "procedure_type": procedure_type,
+            "procedure_identifier": get_value(notice.get("procedure-identifier")),
+            "dispatch_date": parse_date(notice.get("dispatch-date")),
+            "publication_date": pub_date,
+            "legal_basis": get_value(notice.get("legal-basis")),
+            "notice_languages": get_value(notice.get("translation-languages", [])),
+        },
+        
+        # COMPONENT 2: BUYER INFORMATION (Green box in Figure 1)
+        "buyer": {
+            "identification": {
+                "official_name": buyer_name,
+                "buyer_profile": buyer_profile,
+                "postal_address": {
+                    "city": buyer_city,
+                    "country": buyer_country,
+                    "street": get_value(notice.get("organisation-street-buyer")),
+                },
+                "contact_details": {
+                    "email": buyer_email,
+                    "internet_address": get_value(notice.get("buyer-internet-address")),
+                    "touchpoint": get_value(notice.get("buyer-touchpoint-name")),
+                }
+            },
+            "joint_procurement": None,  # TBD from API
+            "ca_ce_type": buyer_legal,
+            "main_activity": get_value(notice.get("buyer-main-activity")),
+        },
+        
+        # COMPONENT 3: OBJECT - Procurement scope (Purple box in Figure 1)
+        "object": {
+            "procurement_scope": {
+                "title": title,
+                "main_cpv": cpv_code,
+                "additional_cpv": cpv_codes_additional,
+                "contract_nature": contract_nature,
+                "short_description": get_value(notice.get("description-proc")),
+                "estimated_value": value_eur,
+                "currency": currency,
+                "lots_info": {
+                    "has_lots": is_multi_lot,
+                    "number_of_lots": total_lots,
+                }
+            },
+            "lots": []  # Will be populated below for multi-lot tenders
+        },
+        
+        # COMPONENT 4: SELECTION CRITERIA (Cyan box in Figure 1)
+        "selection_criteria": {
+            "conditions_for_participation": {
+                "reserved_procurement": is_reserved,
+                "security_clearance_required": security_clearance,
+                "suitability": get_value(notice.get("suitability")),
+                "economic_financial_standing": get_value(notice.get("economic-financial-standing")),
+                "technical_professional_ability": get_value(notice.get("technical-professional-ability")),
+            },
+            "contract_conditions": {
+                "contract_performance": get_value(notice.get("contract-conditions-description-lot")),
+                "reserved_to_profession": None,  # TBD from API
+                "staff_qualifications": None,  # TBD from API
+            }
+        },
+        
+        # COMPONENT 5: PROCEDURE (Orange box in Figure 1)
+        "procedure": {
+            "description": {
+                "procedure_type": procedure_type,
+                "main_features": get_value(notice.get("procedure-features")),
+                "framework_agreement": is_framework,
+                "dps_usage": is_dps,
+                "electronic_auction": electronic_auction,
+                "gpa_covered": gpa_covered,
+                "is_accelerated": is_accelerated,
+            },
+            "administrative_information": {
+                "deadline_receipt_tenders": deadline_tender,
+                "deadline_receipt_requests": deadline_request,
+                "deadline_receipt_expressions": deadline_eoi,
+                "submission_language": get_value(notice.get("submission-language")),
+                "electronic_submission": electronic_submission,
+            }
+        },
+        
+        # COMPONENT 6: CONTRACT AWARD (Only for CAN notices)
+        "contract_award": None,  # Only populated for cn-award type
+        
+        # COMPONENT 7: FURTHER INFORMATION (Bottom green box in Figure 1)
+        "further_information": {
+            "recurring_procurement": is_recurrent,
+            "electronic_workflows": {
+                "electronic_invoicing": get_value(notice.get("electronic-invoicing-lot")),
+            },
+            "additional_information": {
+                "additional_info_proc": get_value(notice.get("additional-info-proc")),
+                "additional_info_lot": get_value(notice.get("additional-information-lot")),
+            },
+            "review_procedures": None,  # TBD from API
+            "additional_contacts": None,  # TBD from API
+        }
+    }
+    
+    # === POPULATE LOT INFORMATION for eForms OBJECT component ===
+    # Done AFTER eforms_notice is created to populate the lots array
+    
+    if is_multi_lot and lot_identifiers:
+        lot_titles_raw = notice.get("title-lot")
+        lot_descriptions_raw = notice.get("description-lot")
+        lot_values_raw = notice.get("estimated-value-lot")
+        lot_cities_raw = notice.get("place-of-performance-city-lot")
+        lot_countries_raw = notice.get("place-of-performance-country-lot")
+        lot_deadlines_raw = notice.get("deadline-receipt-tender-date-lot")
+        lot_cpv_raw = notice.get("main-classification-lot")
+        lot_duration_raw = notice.get("contract-duration-period-lot")
+        
+        # Convert to lists - CRITICAL: ensure all arrays are properly converted
+        lot_titles = to_list(lot_titles_raw)
+        lot_descriptions = to_list(lot_descriptions_raw)
+        lot_values = to_list(lot_values_raw)
+        lot_cities = to_list(lot_cities_raw)
+        lot_countries = to_list(lot_countries_raw)
+        lot_cpvs = to_list(lot_cpv_raw)
+        lot_durations = to_list(lot_duration_raw)
+        
+        # Process deadlines separately
+        if lot_deadlines_raw:
+            if isinstance(lot_deadlines_raw, list):
+                lot_deadlines = [parse_date(d) for d in lot_deadlines_raw]
+            else:
+                lot_deadlines = [parse_date(lot_deadlines_raw)]
+        else:
+            lot_deadlines = []
+        
+        # Populate each lot in eForms structure
+        for i, lot_id in enumerate(lot_identifiers):
+            eforms_notice["object"]["lots"].append({
+                "lot_identifier": lot_id,  # BT-137-Lot
+                "title": lot_titles[i] if i < len(lot_titles) else f"Lot {i+1}",  # BT-21-Lot
+                "description": lot_descriptions[i] if i < len(lot_descriptions) else None,  # BT-24-Lot
+                "main_cpv": lot_cpvs[i] if i < len(lot_cpvs) else None,  # BT-26-Lot
+                "estimated_value": lot_values[i] if i < len(lot_values) else None,  # BT-27-Lot
+                "place_of_performance": {
+                    "city": lot_cities[i] if i < len(lot_cities) else None,  # BT-5141-Lot
+                    "country": lot_countries[i] if i < len(lot_countries) else None,  # BT-5101-Lot
+                },
+                "deadline_receipt_tenders": lot_deadlines[i] if i < len(lot_deadlines) else None,  # BT-131-Lot
+                "duration": lot_durations[i] if i < len(lot_durations) else None,  # BT-36-Lot
+            })
+    
+    result_dict = {
         "notice_identifier": notice_id,
         "publication_number": pub_number,
         "notice_type": notice_type,
         "title": title,
         "description": description,
+        
+        # eForms-compliant structured data (7 major components)
+        "eforms_notice": eforms_notice,
         
         "dates": {
             "publication_date": pub_date,
@@ -736,6 +958,18 @@ def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1, lot_ide
             "lot_identifier": lot_id,
             "lot_number": lot_number,
             "total_lots": total_lots,
+            "lot_identifiers": lot_identifiers if lot_identifiers else [],
+            # Extract titles and descriptions from eForms lots, maintaining order of lot_identifiers
+            "lot_titles": (
+                get_ordered_lot_data(eforms_notice["object"]["lots"], lot_identifiers, "title") 
+                if is_multi_lot and eforms_notice["object"]["lots"] 
+                else []
+            ),
+            "lot_descriptions": (
+                get_ordered_lot_data(eforms_notice["object"]["lots"], lot_identifiers, "description") 
+                if is_multi_lot and eforms_notice["object"]["lots"] 
+                else []
+            ),
         },
         
         "requirements": {
@@ -790,6 +1024,8 @@ def parse_tender(notice: Dict, lot_number: int = 1, total_lots: int = 1, lot_ide
             "fields_count": len(TENDER_FIELDS),
         }
     }
+    
+    return result_dict
 
 
 # =============================================================================
@@ -811,7 +1047,7 @@ def detect_and_process_multilot(notices: List[Dict]) -> List[Dict]:
     "identifier-lot": ["LOT-0001", "LOT-0002", "LOT-0003", "LOT-0004"] = 4 lots
     "identifier-lot": ["LOT-0000"] = 1 lot (single contract)
     """
-    print(f"\n🔄 Processing multi-lot tenders (IDENTIFIER-LOT ARRAY DETECTION)...")
+    print(f"\n[*] Processing multi-lot tenders (IDENTIFIER-LOT ARRAY DETECTION)...")
     print(f"   Total lot records from API: {len(notices)}")
     
     # Group by notice identifier
@@ -896,36 +1132,15 @@ def detect_and_process_multilot(notices: List[Dict]) -> List[Dict]:
             first_notice,
             lot_number=1,
             total_lots=display_total_lots,
-            lot_identifiers=list(unique_lots)
+            lot_identifiers=lot_identifiers  # Use original list to preserve order
         )
         
         # Set multi-lot properties
         tender["strategic"]["is_multi_lot"] = is_multi_lot
         tender["strategic"]["total_lots"] = display_total_lots
         
-        # Add multi-lot metadata if applicable
-        if is_multi_lot and len(unique_lots) > 0:
-            tender["strategic"]["lot_identifiers"] = sorted(unique_lots)
-            
-            # Try to get lot titles from title-lot field
-            lot_titles_raw = first_notice.get("title-lot")
-            if lot_titles_raw:
-                if isinstance(lot_titles_raw, dict):
-                    # Get from language (prefer eng, fallback to first available)
-                    lot_titles = get_value(lot_titles_raw)
-                    if isinstance(lot_titles, list):
-                        tender["strategic"]["lot_titles"] = lot_titles
-                    else:
-                        tender["strategic"]["lot_titles"] = [lot_titles] if lot_titles else []
-                elif isinstance(lot_titles_raw, list):
-                    tender["strategic"]["lot_titles"] = [get_value(title) for title in lot_titles_raw]
-            
-            # Store lot descriptions if available
-            lot_descriptions_raw = first_notice.get("description-lot")
-            if lot_descriptions_raw and isinstance(lot_descriptions_raw, (dict, list)):
-                lot_descriptions = get_value(lot_descriptions_raw)
-                if isinstance(lot_descriptions, list):
-                    tender["strategic"]["lot_descriptions"] = lot_descriptions[:display_total_lots]
+        # parse_tender now handles lot_titles and lot_descriptions via get_ordered_lot_data
+        # No need to override them here anymore
         
         parsed_tenders.append(tender)
     
@@ -973,7 +1188,7 @@ def main():
     tenders = detect_and_process_multilot(notices)
     
     # Filter expired
-    print(f"\n🗓️  Filtering expired tenders...")
+    print(f"\n[*] Filtering expired tenders...")
     active_tenders = [
         t for t in tenders 
         if t["dates"]["days_until_deadline"] is None or t["dates"]["days_until_deadline"] >= 0
